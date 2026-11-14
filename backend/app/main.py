@@ -18,7 +18,7 @@ OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://kelaviai.netlify.app")
 OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "Kelavi.ai")
 
-app = FastAPI(title=APP_NAME, version="0.3.0")
+app = FastAPI(title=APP_NAME, version="0.3.1")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[x.strip() for x in os.getenv("CORS_ORIGINS", "http://localhost:3000,https://kelaviai.netlify.app").split(",") if x.strip()],
@@ -66,6 +66,28 @@ async def health():
     }
 
 
+def extract_reply(data: dict) -> str:
+    choices = data.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        raise ValueError("Missing model choices")
+    message = choices[0].get("message")
+    if not isinstance(message, dict):
+        raise ValueError("Missing assistant message")
+    content = message.get("content")
+    if isinstance(content, str):
+        return content.strip()
+    # Some compatible providers return text blocks instead of one string.
+    if isinstance(content, list):
+        parts = []
+        for part in content:
+            if isinstance(part, str):
+                parts.append(part)
+            elif isinstance(part, dict) and isinstance(part.get("text"), str):
+                parts.append(part["text"])
+        return "\n".join(parts).strip()
+    return ""
+
+
 @app.post("/api/v1/chat")
 async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
     if not OPENROUTER_API_KEY:
@@ -94,11 +116,10 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
             )
             response.raise_for_status()
             data = response.json()
-        reply = data["choices"][0]["message"]["content"]
-        if not isinstance(reply, str) or not reply.strip():
-            raise HTTPException(status_code=502, detail="OpenRouter returned an empty response")
+        reply = extract_reply(data)
+        if not reply:
+            raise HTTPException(status_code=502, detail="OpenRouter returned an empty or unsupported response")
     except httpx.HTTPStatusError as exc:
-        # Do not expose provider response bodies or credentials to the browser.
         if exc.response.status_code == 429:
             raise HTTPException(status_code=429, detail="OpenRouter usage limit reached. Please try again later.") from exc
         if exc.response.status_code in (401, 403):
@@ -106,7 +127,7 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
         raise HTTPException(status_code=502, detail="OpenRouter request failed. Check provider status and model availability.") from exc
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail="Could not connect to OpenRouter") from exc
-    except (KeyError, IndexError, TypeError) as exc:
-        raise HTTPException(status_code=502, detail="Unexpected OpenRouter response") from exc
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        raise HTTPException(status_code=502, detail="Unexpected OpenRouter response format") from exc
 
     return {"reply": reply, "model": OPENROUTER_MODEL, "provider": "openrouter"}
