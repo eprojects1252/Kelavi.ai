@@ -4,29 +4,50 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "../../lib/supabase";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Message = { id?: string; role: "user" | "assistant"; content: string };
+type Conversation = { id: string; title: string; updated_at: string };
 
 export default function AssistantPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "வணக்கம்! நான் Kelavi.ai. இன்று உங்களுக்கு என்ன உதவி செய்ய வேண்டும்?" },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  async function loadConversations() {
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: loadError } = await supabase
+      .from("kelavi_chat_conversations")
+      .select("id,title,updated_at")
+      .order("updated_at", { ascending: false });
+    if (loadError) throw loadError;
+    setConversations((data || []) as Conversation[]);
+  }
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data, error: authError }) => {
-      if (authError || !data.user) router.replace("/auth");
-      else setReady(true);
+    supabase.auth.getUser().then(async ({ data, error: authError }) => {
+      if (authError || !data.user) {
+        router.replace("/auth");
+        return;
+      }
+      try {
+        await loadConversations();
+      } catch (loadError) {
+        console.error("Kelavi chat history load failed:", loadError);
+        setError("Chat history could not be loaded. Please refresh and try again.");
+      }
+      setReady(true);
     }).catch(() => router.replace("/auth"));
   }, [router]);
 
   useEffect(() => {
-    // Guard scrolling: some mobile browsers/webviews can throw during smooth scrolling.
     try {
       const element = bottomRef.current;
       if (element && typeof element.scrollIntoView === "function") {
@@ -37,24 +58,80 @@ export default function AssistantPage() {
     }
   }, [messages, sending]);
 
+  async function openConversation(conversationId: string) {
+    if (sending) return;
+    setHistoryLoading(true);
+    setError("");
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error: messageError } = await supabase
+        .from("kelavi_chat_messages")
+        .select("id,role,content")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+      if (messageError) throw messageError;
+      setMessages((data || []) as Message[]);
+      setActiveConversation(conversationId);
+      setHistoryOpen(false);
+    } catch (loadError) {
+      console.error("Kelavi conversation open failed:", loadError);
+      setError("இந்த Chat-ஐ திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function startNewChat() {
+    if (sending) return;
+    setActiveConversation(null);
+    setMessages([]);
+    setPrompt("");
+    setError("");
+    setHistoryOpen(false);
+  }
+
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = prompt.trim();
     if (!message || sending) return;
+
     const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData.session;
+    const token = session?.access_token;
+    const userId = session?.user.id;
     const apiUrl = process.env.NEXT_PUBLIC_KELAVI_API_URL?.replace(/\/$/, "");
-    if (!token) { router.replace("/auth"); return; }
+    if (!token || !userId) { router.replace("/auth"); return; }
     if (!apiUrl) {
       setError("AI service is not connected yet. Backend deployment is the next setup step.");
       return;
     }
+
     setError("");
     setPrompt("");
-    setMessages((current) => [...current, { role: "user", content: message }]);
     setSending(true);
+    let conversationId = activeConversation;
+    setMessages((current) => [...current, { role: "user", content: message }]);
+
     try {
+      if (!conversationId) {
+        const title = message.length > 48 ? message.slice(0, 48).trim() + "…" : message;
+        const { data: created, error: createError } = await supabase
+          .from("kelavi_chat_conversations")
+          .insert({ user_id: userId, title })
+          .select("id,title,updated_at")
+          .single();
+        if (createError || !created) throw createError || new Error("Could not create chat.");
+        conversationId = created.id;
+        setActiveConversation(conversationId);
+        setConversations((current) => [created as Conversation, ...current]);
+      }
+
+      const { error: saveUserError } = await supabase
+        .from("kelavi_chat_messages")
+        .insert({ conversation_id: conversationId, user_id: userId, role: "user", content: message });
+      if (saveUserError) throw saveUserError;
+
       const response = await fetch(apiUrl + "/api/v1/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
@@ -73,8 +150,16 @@ export default function AssistantPage() {
       if (typeof result.reply !== "string" || !result.reply.trim()) {
         throw new Error("AI server returned an empty or invalid reply. Please try again.");
       }
+
+      const { error: saveAssistantError } = await supabase
+        .from("kelavi_chat_messages")
+        .insert({ conversation_id: conversationId, user_id: userId, role: "assistant", content: result.reply });
+      if (saveAssistantError) throw saveAssistantError;
+
       setMessages((current) => [...current, { role: "assistant", content: result.reply as string }]);
+      await loadConversations();
     } catch (err) {
+      console.error("Kelavi chat request failed:", err);
       setError(err instanceof Error ? err.message : "Could not connect to Kelavi.ai");
     } finally {
       setSending(false);
@@ -82,20 +167,58 @@ export default function AssistantPage() {
   }
 
   if (!ready) return <main className="assistant-loading">Checking your secure session...</main>;
+
   return (
     <main className="assistant-shell">
       <header className="assistant-topbar">
         <a className="brand" href="/dashboard"><span className="brand-mark">K</span> Kelavi<span className="brand-dot">.ai</span></a>
-        <a className="assistant-back" href="/dashboard">← Dashboard</a>
+        <div className="assistant-top-actions">
+          <button className="assistant-history-toggle" type="button" onClick={() => setHistoryOpen((open) => !open)}>☷ History</button>
+          <a className="assistant-back" href="/dashboard">← Dashboard</a>
+        </div>
       </header>
+
+      {historyOpen && (
+        <aside className="assistant-history-panel">
+          <div className="assistant-history-heading">
+            <strong>Chat History</strong>
+            <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close history">×</button>
+          </div>
+          <button className="assistant-new-chat" type="button" onClick={startNewChat}>＋ New Chat</button>
+          {historyLoading && <p className="assistant-history-empty">Loading chats...</p>}
+          {!historyLoading && conversations.length === 0 && <p className="assistant-history-empty">Your saved chats will appear here.</p>}
+          <div className="assistant-history-list">
+            {conversations.map((chat) => (
+              <button
+                className={"assistant-history-item" + (activeConversation === chat.id ? " active" : "")}
+                key={chat.id}
+                type="button"
+                onClick={() => openConversation(chat.id)}
+                disabled={historyLoading || sending}
+              >
+                <span>{chat.title}</span>
+                <small>{new Date(chat.updated_at).toLocaleDateString()}</small>
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
+
       <section className="assistant-heading">
         <div className="eyebrow"><span className="pulse" /> KELAVI AI WORKSPACE</div>
         <h1>AI <span>Assistant</span></h1>
         <p>Ask questions, explore ideas and get help in your language.</p>
       </section>
       <section className="assistant-chat" aria-label="Chat messages">
+        {messages.length === 0 && (
+          <div className="assistant-welcome">
+            <span className="assistant-welcome-mark">K</span>
+            <strong>வணக்கம்! நான் Kelavi.ai.</strong>
+            <p>இன்று உங்களுக்கு என்ன உதவி செய்ய வேண்டும்?</p>
+          </div>
+        )}
         {messages.map((item, index) => (
-          <div className={"assistant-message " + item.role} key={index}>
+          <div className={"assistant-message " + item.role} key={item.id || index}>
             <span>{item.role === "assistant" ? "K" : "You"}</span><p>{item.content}</p>
           </div>
         ))}
