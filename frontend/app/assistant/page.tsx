@@ -160,7 +160,7 @@ export default function AssistantPage() {
       await loadConversations();
     } catch (err) {
       console.error("Kelavi chat request failed:", err);
-      setError(err instanceof Error ? err.message : "Could not connect to Kelavi.ai");
+      setError(err instanceof Error ? err.message : "Could not connect to Kilavi.Ai");
     } finally {
       setSending(false);
     }
@@ -205,7 +205,7 @@ export default function AssistantPage() {
       )}
 
       <section className="assistant-heading">
-        <div className="eyebrow"><span className="pulse" /> KELAVI AI WORKSPACE</div>
+        <div className="eyebrow"><span className="pulse" /> KILAVI AI WORKSPACE</div>
         <h1>AI <span>Assistant</span></h1>
         <p>Ask questions, explore ideas and get help in your language.</p>
       </section>
@@ -213,7 +213,7 @@ export default function AssistantPage() {
         {messages.length === 0 && (
           <div className="assistant-welcome">
             <span className="assistant-welcome-mark">K</span>
-            <strong>வணக்கம்! நான் Kelavi.ai.</strong>
+            <strong>வணக்கம்! நான் Kilavi.Ai.</strong>
             <p>இன்று உங்களுக்கு என்ன உதவி செய்ய வேண்டும்?</p>
           </div>
         )}
@@ -222,13 +222,13 @@ export default function AssistantPage() {
             <span>{item.role === "assistant" ? "K" : "You"}</span><p>{item.content}</p>
           </div>
         ))}
-        {sending && <div className="assistant-typing">Kelavi.ai is thinking...</div>}
+        {sending && <div className="assistant-typing">Kilavi.Ai is thinking...</div>}
         <div ref={bottomRef} />
       </section>
       {error && <p className="assistant-error" role="alert">{error}</p>}
       <form className="assistant-composer" onSubmit={sendMessage}>
-        <label className="sr-only" htmlFor="assistant-prompt">Message Kelavi.ai</label>
-        <textarea id="assistant-prompt" rows={2} value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Message Kelavi.ai..." maxLength={12000} />
+        <label className="sr-only" htmlFor="assistant-prompt">Message Kilavi.Ai</label>
+        <textarea id="assistant-prompt" rows={2} value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Message Kilavi.Ai..." maxLength={12000} />
         <div className="assistant-composer-footer">
           <span>AI responses may need verification.</span>
           <button type="submit" disabled={!prompt.trim() || sending}>{sending ? "Sending..." : "Send ↗"}</button>
