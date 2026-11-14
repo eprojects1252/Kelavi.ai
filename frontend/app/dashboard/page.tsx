@@ -23,6 +23,10 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileNotice, setProfileNotice] = useState("");
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -44,6 +48,7 @@ export default function DashboardPage() {
 
       if (!active) return;
       setProfile(profileData);
+      setNameDraft(profileData?.display_name || data.user.user_metadata?.display_name || "");
       setLoading(false);
     });
 
@@ -56,6 +61,25 @@ export default function DashboardPage() {
       listener.subscription.unsubscribe();
     };
   }, [router]);
+
+  async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!user) return;
+    const cleanName = nameDraft.trim();
+    if (!cleanName) { setProfileNotice("Please enter your display name."); return; }
+    setSavingProfile(true);
+    setProfileNotice("");
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase.from("profiles").update({ display_name: cleanName }).eq("id", user.id).select("display_name, role").single();
+    if (error) {
+      setProfileNotice("Could not update your profile. Please try again.");
+    } else {
+      setProfile(data);
+      setEditingProfile(false);
+      setProfileNotice("Profile updated successfully.");
+    }
+    setSavingProfile(false);
+  }
 
   async function signOut() {
     setSigningOut(true);
