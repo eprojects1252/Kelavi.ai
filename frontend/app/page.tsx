@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <main className="shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Kilavi.Ai home"><span className="brand-mark">K</span> Kelavi<span className="brand-dot">.ai</span></a>
+        <a className="brand" href="/" aria-label="Kilavi.Ai home"><span className="brand-mark">K</span> Kilavi<span className="brand-dot">.Ai</span></a>
         <a className="signin signin-link" href="/auth">Sign in</a>
       </header>
 
