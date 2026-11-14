@@ -40,7 +40,7 @@ export default function AssistantPage() {
       try {
         await loadConversations();
       } catch (loadError) {
-        console.error("Kelavi chat history load failed:", loadError);
+        console.error("Kilavi chat history load failed:", loadError);
         setError("Chat history could not be loaded. Please refresh and try again.");
       }
       setReady(true);
@@ -54,7 +54,7 @@ export default function AssistantPage() {
         element.scrollIntoView({ behavior: "smooth", block: "end" });
       }
     } catch (scrollError) {
-      console.warn("Kelavi chat auto-scroll unavailable:", scrollError);
+      console.warn("Kilavi chat auto-scroll unavailable:", scrollError);
     }
   }, [messages, sending]);
 
@@ -74,7 +74,7 @@ export default function AssistantPage() {
       setActiveConversation(conversationId);
       setHistoryOpen(false);
     } catch (loadError) {
-      console.error("Kelavi conversation open failed:", loadError);
+      console.error("Kilavi conversation open failed:", loadError);
       setError("இந்த Chat-ஐ திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.");
     } finally {
       setHistoryLoading(false);
@@ -159,7 +159,7 @@ export default function AssistantPage() {
       setMessages((current) => [...current, { role: "assistant", content: result.reply as string }]);
       await loadConversations();
     } catch (err) {
-      console.error("Kelavi chat request failed:", err);
+      console.error("Kilavi chat request failed:", err);
       setError(err instanceof Error ? err.message : "Could not connect to Kilavi.Ai");
     } finally {
       setSending(false);
@@ -171,7 +171,7 @@ export default function AssistantPage() {
   return (
     <main className="assistant-shell">
       <header className="assistant-topbar">
-        <a className="brand" href="/dashboard"><span className="brand-mark">K</span> Kelavi<span className="brand-dot">.ai</span></a>
+        <a className="brand" href="/dashboard"><span className="brand-mark">K</span> Kilavi<span className="brand-dot">.Ai</span></a>
         <div className="assistant-top-actions">
           <button className="assistant-history-toggle" type="button" onClick={() => setHistoryOpen((open) => !open)}>☷ History</button>
           <a className="assistant-back" href="/dashboard">← Dashboard</a>
