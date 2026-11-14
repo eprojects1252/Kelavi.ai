@@ -25,7 +25,17 @@ export default function AssistantPage() {
     }).catch(() => router.replace("/auth"));
   }, [router]);
 
-  useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, sending]);
+  useEffect(() => {
+    // Guard scrolling: some mobile browsers/webviews can throw during smooth scrolling.
+    try {
+      const element = bottomRef.current;
+      if (element && typeof element.scrollIntoView === "function") {
+        element.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    } catch (scrollError) {
+      console.warn("Kelavi chat auto-scroll unavailable:", scrollError);
+    }
+  }, [messages, sending]);
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
