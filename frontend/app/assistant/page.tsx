@@ -22,7 +22,7 @@ export default function AssistantPage() {
     supabase.auth.getUser().then(({ data, error: authError }) => {
       if (authError || !data.user) router.replace("/auth");
       else setReady(true);
-    });
+    }).catch(() => router.replace("/auth"));
   }, [router]);
 
   useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, sending]);
@@ -50,9 +50,20 @@ export default function AssistantPage() {
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({ message }),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.detail || "AI request failed");
-      setMessages((current) => [...current, { role: "assistant", content: result.reply }]);
+      const rawBody = await response.text();
+      let result: { reply?: unknown; detail?: unknown };
+      try {
+        result = JSON.parse(rawBody) as { reply?: unknown; detail?: unknown };
+      } catch {
+        throw new Error("AI server returned an unreadable response. Please try again.");
+      }
+      if (!response.ok) {
+        throw new Error(typeof result.detail === "string" ? result.detail : "AI request failed. Please try again.");
+      }
+      if (typeof result.reply !== "string" || !result.reply.trim()) {
+        throw new Error("AI server returned an empty or invalid reply. Please try again.");
+      }
+      setMessages((current) => [...current, { role: "assistant", content: result.reply as string }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not connect to Kelavi.ai");
     } finally {
