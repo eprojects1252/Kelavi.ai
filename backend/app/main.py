@@ -1,4 +1,5 @@
 import os
+import logging
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
@@ -6,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 load_dotenv()
+
+logger = logging.getLogger("kelavi.openrouter")
 
 APP_NAME = "Kelavi.ai API"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
@@ -120,14 +123,25 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
         if not reply:
             raise HTTPException(status_code=502, detail="OpenRouter returned an empty or unsupported response")
     except httpx.HTTPStatusError as exc:
+        # Log provider diagnostics without logging request headers, API keys, or user prompts.
+        provider_error = ""
+        try:
+            error_data = exc.response.json().get("error", {})
+            if isinstance(error_data, dict):
+                provider_error = str(error_data.get("message", ""))[:300]
+        except (ValueError, AttributeError):
+            provider_error = ""
+        logger.error("OpenRouter HTTP error status=%s message=%s", exc.response.status_code, provider_error)
         if exc.response.status_code == 429:
             raise HTTPException(status_code=429, detail="OpenRouter usage limit reached. Please try again later.") from exc
         if exc.response.status_code in (401, 403):
             raise HTTPException(status_code=502, detail="OpenRouter rejected the backend API key. Check backend configuration.") from exc
         raise HTTPException(status_code=502, detail="OpenRouter request failed. Check provider status and model availability.") from exc
     except httpx.HTTPError as exc:
+        logger.error("OpenRouter connection error type=%s", type(exc).__name__)
         raise HTTPException(status_code=502, detail="Could not connect to OpenRouter") from exc
     except (ValueError, KeyError, IndexError, TypeError) as exc:
+        logger.error("OpenRouter response parsing error type=%s", type(exc).__name__)
         raise HTTPException(status_code=502, detail="Unexpected OpenRouter response format") from exc
 
     return {"reply": reply, "model": OPENROUTER_MODEL, "provider": "openrouter"}
