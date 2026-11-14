@@ -58,7 +58,7 @@ export default function AuthForm() {
     <section className="auth-card">
       <div className="auth-kicker">WELCOME TO YOUR AI WORKSPACE</div>
       <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
-      <p className="auth-description">{mode === "login" ? "Sign in to continue to Kelavi.ai." : "Start building with Kelavi.ai using your email."}</p>
+      <p className="auth-description">{mode === "login" ? "Sign in to continue to Kilavi.Ai." : "Start building with Kilavi.Ai using your email."}</p>
 
       <div className="auth-tabs">
         <button type="button" className={mode === "login" ? "auth-tab selected" : "auth-tab"} onClick={() => { setMode("login"); setError(""); setNotice(""); }}>Sign in</button>
@@ -82,7 +82,7 @@ export default function AuthForm() {
         <button className="auth-submit" type="submit" disabled={busy}>{busy ? "Please wait..." : mode === "login" ? "Sign in →" : "Create account →"}</button>
       </form>
 
-      <p className="auth-terms">By continuing, you agree to use Kelavi.ai responsibly.</p>
+      <p className="auth-terms">By continuing, you agree to use Kilavi.Ai responsibly.</p>
     </section>
   );
 }
