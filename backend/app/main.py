@@ -80,7 +80,7 @@ async def record_usage(user_id: str, model: str, usage: dict, latency_ms: int):
         "user_id": user_id, "model": model, "endpoint": "/api/v1/chat",
         "input_tokens": int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0),
         "output_tokens": int(usage.get("completion_tokens") or usage.get("output_tokens") or 0),
-        "total_tokens": int(usage.get("total_tokens") or 0), "status_code": 200,
+        "total_tokens": int(usage.get("total_tokens") or (usage.get("prompt_tokens") or usage.get("input_tokens") or 0) + (usage.get("completion_tokens") or usage.get("output_tokens") or 0)), "status_code": 200,
         "latency_ms": max(0, int(latency_ms)),
     }
     try:
