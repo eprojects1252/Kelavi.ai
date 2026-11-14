@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
@@ -13,6 +14,7 @@ logger = logging.getLogger("kilavi.openrouter")
 APP_NAME = "Kilavi.Ai API"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
 # OpenRouter credentials stay on the backend only.
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
@@ -69,6 +71,30 @@ async def health():
     }
 
 
+async def record_usage(user_id: str, model: str, usage: dict, latency_ms: int):
+    # Service-role key is backend-only and must never be exposed to the browser.
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        logger.warning("Usage logging skipped: SUPABASE_SERVICE_ROLE_KEY is not configured")
+        return
+    payload = {
+        "user_id": user_id, "model": model, "endpoint": "/api/v1/chat",
+        "input_tokens": int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0),
+        "output_tokens": int(usage.get("completion_tokens") or usage.get("output_tokens") or 0),
+        "total_tokens": int(usage.get("total_tokens") or 0), "status_code": 200,
+        "latency_ms": max(0, int(latency_ms)),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            result = await client.post(
+                f"{SUPABASE_URL}/rest/v1/usage_logs",
+                headers={"apikey": SUPABASE_SERVICE_ROLE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}", "Content-Type": "application/json", "Prefer": "return=minimal"},
+                json=payload,
+            )
+        if result.status_code not in (200, 201, 204):
+            logger.error("Usage log insert failed status=%s", result.status_code)
+    except httpx.HTTPError as exc:
+        logger.error("Usage log insert connection error type=%s", type(exc).__name__)
+
 def extract_reply(data: dict) -> str:
     choices = data.get("choices")
     if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
@@ -95,6 +121,8 @@ def extract_reply(data: dict) -> str:
 async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
     if not OPENROUTER_API_KEY:
         raise HTTPException(status_code=503, detail="OpenRouter API key is not configured on the backend")
+    started_at = time.perf_counter()
+    provider_usage = {}
     try:
         async with httpx.AsyncClient(timeout=90) as client:
             response = await client.post(
@@ -119,6 +147,7 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
             )
             response.raise_for_status()
             data = response.json()
+            provider_usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
         reply = extract_reply(data)
         if not reply:
             raise HTTPException(status_code=502, detail="OpenRouter returned an empty or unsupported response")
@@ -144,4 +173,5 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
         logger.error("OpenRouter response parsing error type=%s", type(exc).__name__)
         raise HTTPException(status_code=502, detail="Unexpected OpenRouter response format") from exc
 
+    await record_usage(str(user.get("id", "")), str(data.get("model") or OPENROUTER_MODEL), provider_usage, int((time.perf_counter() - started_at) * 1000))
     return {"reply": reply, "model": OPENROUTER_MODEL, "provider": "openrouter"}
