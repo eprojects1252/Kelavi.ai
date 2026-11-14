@@ -1,4 +1,4 @@
-# Kelavi.ai
+# Kilavi.Ai
 
 Mobile-first AI platform for general assistance, coding, project knowledge, vision research, and developer APIs.
 
