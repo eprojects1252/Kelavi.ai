@@ -35,7 +35,7 @@ export default function AuthForm() {
         if (authError) throw authError;
 
         if (data.session) {
-          window.location.assign("/");
+          window.location.assign("/dashboard");
         } else {
           setNotice("Account created. Check your email and confirm your address, then sign in.");
         }
