@@ -45,7 +45,7 @@ export default function AuthForm() {
           password,
         });
         if (authError) throw authError;
-        window.location.assign("/");
+        window.location.assign("/dashboard");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed. Please try again.");
