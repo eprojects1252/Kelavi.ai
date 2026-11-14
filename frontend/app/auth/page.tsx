@@ -5,7 +5,7 @@ export default function AuthPage() {
     <main className="auth-shell">
       <a className="brand auth-brand" href="/"><span className="brand-mark">K</span> Kelavi<span className="brand-dot">.ai</span></a>
       <AuthForm />
-      <p className="auth-foot">Secure account access · Kelavi.ai</p>
+      <p className="auth-foot">Secure account access · Kilavi.Ai</p>
     </main>
   );
 }
