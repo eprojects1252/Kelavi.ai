@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <main className="shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Kelavi.ai home"><span className="brand-mark">K</span> Kelavi<span className="brand-dot">.ai</span></a>
+        <a className="brand" href="/" aria-label="Kilavi.Ai home"><span className="brand-mark">K</span> Kelavi<span className="brand-dot">.ai</span></a>
         <a className="signin signin-link" href="/auth">Sign in</a>
       </header>
 
@@ -32,10 +32,10 @@ export default function Home() {
         <p className="intro">One place to think, build, learn and explore with AI.</p>
 
         <div className="composer">
-          <label className="sr-only" htmlFor="prompt">Ask Kelavi.ai</label>
+          <label className="sr-only" htmlFor="prompt">Ask Kilavi.Ai</label>
           <textarea id="prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ask anything or describe what you want to build..." rows={3} />
           <div className="composer-bottom">
-            <span className="model-label">✦ Kelavi AI</span>
+            <span className="model-label">✦ Kilavi AI</span>
             <button className="send" type="button" onClick={startChat} disabled={!prompt.trim()}>Start ↗</button>
           </div>
         </div>
@@ -51,7 +51,7 @@ export default function Home() {
           ))}
         </div>
       </section>
-      <footer>© 2026 Kelavi.ai <span>Built for ideas without limits.</span></footer>
+      <footer>© 2026 Kilavi.Ai <span>Built for ideas without limits.</span></footer>
     </main>
   );
 }
