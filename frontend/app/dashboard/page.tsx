@@ -11,10 +11,10 @@ type Profile = {
 };
 
 const workspaces = [
-  { icon: "✦", title: "AI Assistant", description: "Ask questions and work through ideas." },
-  { icon: "⌘", title: "Coding AI", description: "Create, debug and understand code." },
-  { icon: "▤", title: "Project Knowledge", description: "Find answers from your project files." },
-  { icon: "◉", title: "Vision Research", description: "Research coins, stamps and collectibles." },
+  { icon: "✦", title: "AI Assistant", description: "Ask questions and work through ideas.", href: "/assistant", ready: true },
+  { icon: "⌘", title: "Coding AI", description: "Create, debug and understand code.", href: "#", ready: false },
+  { icon: "▤", title: "Project Knowledge", description: "Find answers from your project files.", href: "#", ready: false },
+  { icon: "◉", title: "Vision Research", description: "Research coins, stamps and collectibles.", href: "#", ready: false },
 ];
 
 export default function DashboardPage() {
@@ -96,11 +96,11 @@ export default function DashboardPage() {
         </div>
         <div className="dashboard-workspace-grid">
           {workspaces.map((item) => (
-            <article className="dashboard-workspace-card" key={item.title}>
+            <article className={item.ready ? "dashboard-workspace-card workspace-ready" : "dashboard-workspace-card"} key={item.title}>
               <span className="dashboard-workspace-icon">{item.icon}</span>
               <h3>{item.title}</h3>
               <p>{item.description}</p>
-              <span className="workspace-coming-soon">Coming next</span>
+              {item.ready ? <a className="workspace-open" href={item.href}>Open workspace ↗</a> : <span className="workspace-coming-soon">Coming next</span>}
             </article>
           ))}
         </div>
