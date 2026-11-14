@@ -20,7 +20,7 @@ Add these values to the backend environment (or the local `.env` file):
 - `OPENROUTER_API_KEY=` your private OpenRouter key
 - `OPENROUTER_MODEL=openrouter/free`
 - `OPENROUTER_SITE_URL=https://kelaviai.netlify.app`
-- `OPENROUTER_APP_NAME=Kelavi.ai`
+- `OPENROUTER_APP_NAME=Kilavi.Ai`
 
 Never put `OPENROUTER_API_KEY` in frontend code, a `NEXT_PUBLIC_*` variable, GitHub, or a chat message.
 
