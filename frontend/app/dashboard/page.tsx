@@ -82,7 +82,7 @@ export default function DashboardPage() {
       <section className="dashboard-welcome">
         <div className="eyebrow"><span className="pulse" /> YOUR PRIVATE WORKSPACE</div>
         <h1>Welcome, <span>{displayName}</span></h1>
-        <p>Your Kelavi.ai workspace is ready. Choose a tool to get started.</p>
+        <p>Your Kilavi.Ai workspace is ready. Choose a tool to get started.</p>
         <div className="dashboard-account">
           <div><small>ACCOUNT EMAIL</small><strong>{user?.email}</strong></div>
           <div><small>ACCOUNT ROLE</small><strong>{profile?.role || "user"}</strong></div>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
-      <footer className="dashboard-footer">© 2026 Kelavi.ai <span>Private workspace</span></footer>
+      <footer className="dashboard-footer">© 2026 Kilavi.Ai <span>Private workspace</span></footer>
     </main>
   );
 }
