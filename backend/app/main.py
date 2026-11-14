@@ -10,21 +10,27 @@ load_dotenv()
 APP_NAME = "Kelavi.ai API"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
-AI_BASE_URL = os.getenv("AI_BASE_URL", "").rstrip("/")
-AI_API_KEY = os.getenv("AI_API_KEY", "")
-AI_MODEL = os.getenv("AI_MODEL", "")
 
-app = FastAPI(title=APP_NAME, version="0.2.0")
+# OpenRouter credentials stay on the backend only.
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
+OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://kelaviai.netlify.app")
+OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "Kelavi.ai")
+
+app = FastAPI(title=APP_NAME, version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[x.strip() for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if x.strip()],
+    allow_origins=[x.strip() for x in os.getenv("CORS_ORIGINS", "http://localhost:3000,https://kelaviai.netlify.app").split(",") if x.strip()],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=12000)
+
 
 async def require_user(authorization: str | None = Header(default=None)):
     if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
@@ -44,27 +50,43 @@ async def require_user(authorization: str | None = Header(default=None)):
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail="Could not verify your sign-in session") from exc
 
+
 @app.get("/")
 async def root():
-    return {"name": APP_NAME, "status": "running", "docs": "/docs"}
+    return {"name": APP_NAME, "status": "running", "provider": "OpenRouter"}
+
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "ai_provider_configured": bool(AI_BASE_URL and AI_API_KEY and AI_MODEL)}
+    return {
+        "status": "ok",
+        "provider": "openrouter",
+        "ai_provider_configured": bool(OPENROUTER_API_KEY and OPENROUTER_MODEL),
+        "model": OPENROUTER_MODEL,
+    }
+
 
 @app.post("/api/v1/chat")
 async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
-    if not (AI_BASE_URL and AI_API_KEY and AI_MODEL):
-        raise HTTPException(status_code=503, detail="AI provider is not configured yet")
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(status_code=503, detail="OpenRouter API key is not configured on the backend")
     try:
         async with httpx.AsyncClient(timeout=90) as client:
             response = await client.post(
-                f"{AI_BASE_URL}/chat/completions",
-                headers={"Authorization": f"Bearer {AI_API_KEY}"},
+                f"{OPENROUTER_BASE_URL}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "HTTP-Referer": OPENROUTER_SITE_URL,
+                    "X-Title": OPENROUTER_APP_NAME,
+                    "Content-Type": "application/json",
+                },
                 json={
-                    "model": AI_MODEL,
+                    "model": OPENROUTER_MODEL,
                     "messages": [
-                        {"role": "system", "content": "You are Kelavi.ai, a helpful and accurate AI assistant. Reply in the user's language."},
+                        {
+                            "role": "system",
+                            "content": "You are Kelavi.ai, a helpful and accurate AI assistant. Reply in the user's language.",
+                        },
                         {"role": "user", "content": payload.message},
                     ],
                     "temperature": 0.7,
@@ -73,8 +95,18 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
             response.raise_for_status()
             data = response.json()
         reply = data["choices"][0]["message"]["content"]
+        if not isinstance(reply, str) or not reply.strip():
+            raise HTTPException(status_code=502, detail="OpenRouter returned an empty response")
+    except httpx.HTTPStatusError as exc:
+        # Do not expose provider response bodies or credentials to the browser.
+        if exc.response.status_code == 429:
+            raise HTTPException(status_code=429, detail="OpenRouter usage limit reached. Please try again later.") from exc
+        if exc.response.status_code in (401, 403):
+            raise HTTPException(status_code=502, detail="OpenRouter rejected the backend API key. Check backend configuration.") from exc
+        raise HTTPException(status_code=502, detail="OpenRouter request failed. Check provider status and model availability.") from exc
     except httpx.HTTPError as exc:
-        raise HTTPException(status_code=502, detail="AI provider connection failed") from exc
+        raise HTTPException(status_code=502, detail="Could not connect to OpenRouter") from exc
     except (KeyError, IndexError, TypeError) as exc:
-        raise HTTPException(status_code=502, detail="Unexpected AI provider response") from exc
-    return {"reply": str(reply), "model": AI_MODEL}
+        raise HTTPException(status_code=502, detail="Unexpected OpenRouter response") from exc
+
+    return {"reply": reply, "model": OPENROUTER_MODEL, "provider": "openrouter"}
