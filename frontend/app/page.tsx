@@ -23,7 +23,7 @@ export default function Home() {
     <main className="shell">
       <header className="topbar">
         <a className="brand" href="/" aria-label="Kelavi.ai home"><span className="brand-mark">K</span> Kelavi<span className="brand-dot">.ai</span></a>
-        <button className="signin" type="button" onClick={() => alert("Sign in will be enabled after Supabase Auth setup.")}>Sign in</button>
+        <a className="signin signin-link" href="/auth">Sign in</a>
       </header>
 
       <section className="hero">
