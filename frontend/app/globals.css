@@ -18,7 +18,7 @@ h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(40px,8vw,68px);letter-
 h1 span{background:linear-gradient(90deg,#b9aaff,#74dcef);background-clip:text;color:transparent}
 .intro{color:var(--muted);font-size:16px;margin:0 0 34px}
 .composer{background:linear-gradient(145deg,#171d35,#0f1527);border:1px solid rgba(170,158,255,.28);border-radius:20px;padding:17px;text-align:left;box-shadow:0 18px 60px #0005,0 0 35px #8d7bff12}
-.composer textarea{width:100%;resize:vertical;min-height:88px;border:0;outline:0;background:transparent;color:var(--text);font-size:15px;line-height:1.6}
+.composer textarea{width:100%;resize:none;min-height:88px;border:0;outline:0;background:transparent;color:var(--text);font-size:15px;line-height:1.6}
 .composer textarea::placeholder{color:#77819d}
 .composer-bottom{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:13px}
 .model-label{font-size:12px;color:#bdb5ff}
