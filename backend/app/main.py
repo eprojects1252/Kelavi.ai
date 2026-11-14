@@ -71,6 +71,83 @@ async def health():
     }
 
 
+async def get_monthly_token_quota(user_id: str) -> tuple[int, int]:
+    """Return (used_tokens, effective_monthly_limit) using trusted server-side queries."""
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(status_code=503, detail="Token limit service is not configured")
+
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+    }
+    month_start = time.strftime("%Y-%m-01T00:00:00+00:00", time.gmtime())
+
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            subscription_response = await client.get(
+                f"{SUPABASE_URL}/rest/v1/user_subscriptions",
+                headers=headers,
+                params={
+                    "select": "custom_monthly_token_limit,custom_limit_enabled,plans(monthly_token_limit)",
+                    "user_id": f"eq.{user_id}",
+                    "status": "eq.active",
+                    "order": "created_at.desc",
+                    "limit": "1",
+                },
+            )
+            if subscription_response.status_code != 200:
+                logger.error("Subscription lookup failed status=%s", subscription_response.status_code)
+                raise HTTPException(status_code=503, detail="Could not verify your active plan")
+
+            subscriptions = subscription_response.json()
+            if not subscriptions:
+                raise HTTPException(status_code=403, detail="No active plan is assigned to this account")
+
+            subscription = subscriptions[0]
+            plan_data = subscription.get("plans")
+            if isinstance(plan_data, list):
+                plan_data = plan_data[0] if plan_data else {}
+            if not isinstance(plan_data, dict):
+                plan_data = {}
+
+            plan_limit = plan_data.get("monthly_token_limit")
+            custom_limit = subscription.get("custom_monthly_token_limit")
+            custom_enabled = subscription.get("custom_limit_enabled") is True
+            effective_limit = custom_limit if custom_enabled and custom_limit is not None else plan_limit
+            if effective_limit is None or int(effective_limit) <= 0:
+                raise HTTPException(status_code=503, detail="Your plan token limit is not configured")
+
+            used_tokens = 0
+            page_size = 1000
+            offset = 0
+            while True:
+                usage_response = await client.get(
+                    f"{SUPABASE_URL}/rest/v1/usage_logs",
+                    headers=headers,
+                    params={
+                        "select": "total_tokens",
+                        "user_id": f"eq.{user_id}",
+                        "created_at": f"gte.{month_start}",
+                        "order": "id.asc",
+                        "limit": str(page_size),
+                        "offset": str(offset),
+                    },
+                )
+                if usage_response.status_code != 200:
+                    logger.error("Monthly usage lookup failed status=%s", usage_response.status_code)
+                    raise HTTPException(status_code=503, detail="Could not verify monthly token usage")
+                rows = usage_response.json()
+                used_tokens += sum(max(0, int(row.get("total_tokens") or 0)) for row in rows)
+                if len(rows) < page_size:
+                    break
+                offset += page_size
+
+            return used_tokens, int(effective_limit)
+    except httpx.HTTPError as exc:
+        logger.error("Token quota lookup connection error type=%s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Could not check your token usage") from exc
+
+
 async def record_usage(user_id: str, model: str, usage: dict, latency_ms: int):
     # Service-role key is backend-only and must never be exposed to the browser.
     if not SUPABASE_SERVICE_ROLE_KEY:
@@ -119,6 +196,12 @@ def extract_reply(data: dict) -> str:
 
 @app.post("/api/v1/chat")
 async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
+    used_tokens, token_limit = await get_monthly_token_quota(str(user.get("id", "")))
+    if used_tokens >= token_limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Monthly token limit reached ({used_tokens:,}/{token_limit:,}). Your limit resets at the start of next month.",
+        )
     if not OPENROUTER_API_KEY:
         raise HTTPException(status_code=503, detail="OpenRouter API key is not configured on the backend")
     started_at = time.perf_counter()
