@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-logger = logging.getLogger("kelavi.openrouter")
+logger = logging.getLogger("kilavi.openrouter")
 
-APP_NAME = "Kelavi.ai API"
+APP_NAME = "Kilavi.Ai API"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 
@@ -19,7 +19,7 @@ OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/ap
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "https://kelaviai.netlify.app")
-OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "Kelavi.ai")
+OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "Kilavi.Ai")
 
 app = FastAPI(title=APP_NAME, version="0.3.1")
 app.add_middleware(
@@ -110,7 +110,7 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
                     "messages": [
                         {
                             "role": "system",
-                            "content": "You are Kelavi.ai, a helpful and accurate AI assistant. Reply in the user's language.",
+                            "content": "You are Kilavi.Ai, a helpful and accurate AI assistant. Reply in the user's language.",
                         },
                         {"role": "user", "content": payload.message},
                     ],
