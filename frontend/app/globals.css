@@ -137,3 +137,14 @@ footer{border-top:1px solid var(--line);margin-top:64px;padding:22px 0;color:#77
 .assistant-welcome strong{display:block;color:#f4f6ff;font-size:15px}
 .assistant-welcome p{font-size:12px;margin:8px 0 0}
 @media(max-width:520px){.assistant-top-actions{gap:8px}.assistant-history-toggle{padding:7px 10px;font-size:11px}.assistant-back{font-size:11px}}
+
+/* Smooth rounded touch feedback on mobile and keyboard focus */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(169, 155, 255, .7);
+  outline-offset: 2px;
+}
