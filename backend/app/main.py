@@ -8,29 +8,41 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 APP_NAME = "Kelavi.ai API"
-DEV_KEY = os.getenv("KELAVI_DEV_API_KEY", "")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 AI_BASE_URL = os.getenv("AI_BASE_URL", "").rstrip("/")
 AI_API_KEY = os.getenv("AI_API_KEY", "")
 AI_MODEL = os.getenv("AI_MODEL", "")
 
-app = FastAPI(title=APP_NAME, version="0.1.0")
+app = FastAPI(title=APP_NAME, version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[x.strip() for x in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if x.strip()],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "X-API-Key"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=12000)
-    system_prompt: str | None = Field(default=None, max_length=4000)
 
-def require_dev_key(x_api_key: str | None = Header(default=None)):
-    if not DEV_KEY or DEV_KEY == "replace-with-a-long-random-secret":
-        raise HTTPException(status_code=503, detail="Set a unique KELAVI_DEV_API_KEY in backend/.env")
-    if x_api_key != DEV_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+async def require_user(authorization: str | None = Header(default=None)):
+    if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
+        raise HTTPException(status_code=503, detail="Supabase backend configuration is missing")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Sign in is required")
+    token = authorization.removeprefix("Bearer ").strip()
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(
+                f"{SUPABASE_URL}/auth/v1/user",
+                headers={"apikey": SUPABASE_PUBLISHABLE_KEY, "Authorization": f"Bearer {token}"},
+            )
+        if response.status_code != 200:
+            raise HTTPException(status_code=401, detail="Your session is invalid or expired")
+        return response.json()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail="Could not verify your sign-in session") from exc
 
 @app.get("/")
 async def root():
@@ -40,20 +52,23 @@ async def root():
 async def health():
     return {"status": "ok", "ai_provider_configured": bool(AI_BASE_URL and AI_API_KEY and AI_MODEL)}
 
-@app.post("/api/v1/chat", dependencies=[Depends(require_dev_key)])
-async def chat(payload: ChatRequest):
+@app.post("/api/v1/chat")
+async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
     if not (AI_BASE_URL and AI_API_KEY and AI_MODEL):
-        raise HTTPException(status_code=503, detail="Configure AI_BASE_URL, AI_API_KEY, and AI_MODEL")
-    messages = []
-    if payload.system_prompt:
-        messages.append({"role": "system", "content": payload.system_prompt})
-    messages.append({"role": "user", "content": payload.message})
+        raise HTTPException(status_code=503, detail="AI provider is not configured yet")
     try:
         async with httpx.AsyncClient(timeout=90) as client:
             response = await client.post(
                 f"{AI_BASE_URL}/chat/completions",
                 headers={"Authorization": f"Bearer {AI_API_KEY}"},
-                json={"model": AI_MODEL, "messages": messages, "temperature": 0.7},
+                json={
+                    "model": AI_MODEL,
+                    "messages": [
+                        {"role": "system", "content": "You are Kelavi.ai, a helpful and accurate AI assistant. Reply in the user's language."},
+                        {"role": "user", "content": payload.message},
+                    ],
+                    "temperature": 0.7,
+                },
             )
             response.raise_for_status()
             data = response.json()
