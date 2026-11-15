@@ -264,6 +264,43 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
     await record_usage(str(user.get("id", "")), str(data.get("model") or OPENROUTER_MODEL), provider_usage, int((time.perf_counter() - started_at) * 1000))
     return {"reply": reply, "model": OPENROUTER_MODEL, "provider": "openrouter"}
 
+@app.get("/api/v1/admin/users")
+async def list_admin_users(admin: dict = Depends(require_user)):
+    """List profile records for the admin token-limit selector."""
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(status_code=503, detail="Admin service is not configured")
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            role_response = await client.get(
+                f"{SUPABASE_URL}/rest/v1/profiles",
+                headers=headers,
+                params={"select": "role", "id": f"eq.{admin.get('id', '')}", "limit": "1"},
+            )
+            if role_response.status_code != 200:
+                logger.error("Admin role lookup failed status=%s", role_response.status_code)
+                raise HTTPException(status_code=503, detail="Could not verify admin permissions")
+            role_rows = role_response.json()
+            if not role_rows or role_rows[0].get("role") != "admin":
+                raise HTTPException(status_code=403, detail="Admin access is required")
+
+            users_response = await client.get(
+                f"{SUPABASE_URL}/rest/v1/profiles",
+                headers=headers,
+                params={"select": "id,display_name,role", "order": "created_at.asc"},
+            )
+            if users_response.status_code != 200:
+                logger.error("Admin user list failed status=%s", users_response.status_code)
+                raise HTTPException(status_code=503, detail="Could not load user accounts")
+            return {"users": users_response.json()}
+    except httpx.HTTPError as exc:
+        logger.error("Admin user list connection error type=%s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Could not load user accounts") from exc
+
+
 @app.post("/api/v1/admin/users/{target_user_id}/token-limit")
 async def set_user_token_limit(
     target_user_id: str,
