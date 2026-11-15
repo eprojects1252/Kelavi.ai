@@ -42,6 +42,10 @@ class CustomTokenLimitRequest(BaseModel):
     monthly_token_limit: int | None = Field(default=None, ge=1)
 
 
+class AdminAccountUpdateRequest(BaseModel):
+    display_name: str = Field(min_length=1, max_length=80)
+
+
 async def require_user(authorization: str | None = Header(default=None)):
     if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
         raise HTTPException(status_code=503, detail="Supabase backend configuration is missing")
@@ -331,6 +335,51 @@ async def list_admin_users(admin: dict = Depends(require_user)):
     except httpx.HTTPError as exc:
         logger.error("Admin user list connection error type=%s", type(exc).__name__)
         raise HTTPException(status_code=502, detail="Could not load user accounts") from exc
+
+
+@app.patch("/api/v1/admin/users/{target_user_id}/account")
+async def update_user_account(
+    target_user_id: str,
+    payload: AdminAccountUpdateRequest,
+    admin: dict = Depends(require_user),
+):
+    """Only an administrator may update another account's display name."""
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(status_code=503, detail="Admin service is not configured")
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            role_response = await client.get(
+                f"{SUPABASE_URL}/rest/v1/profiles",
+                headers=headers,
+                params={"select": "role", "id": f"eq.{admin.get('id', '')}", "limit": "1"},
+            )
+            if role_response.status_code != 200:
+                raise HTTPException(status_code=503, detail="Could not verify admin permissions")
+            roles = role_response.json()
+            if not roles or roles[0].get("role") != "admin":
+                raise HTTPException(status_code=403, detail="Admin access is required")
+            update_response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/profiles",
+                headers=headers,
+                params={"id": f"eq.{target_user_id}"},
+                json={"display_name": payload.display_name.strip()},
+            )
+            if update_response.status_code not in (200, 204):
+                logger.error("Admin account update failed status=%s", update_response.status_code)
+                raise HTTPException(status_code=503, detail="Could not update account settings")
+            rows = update_response.json() if update_response.content else []
+            if not rows:
+                raise HTTPException(status_code=404, detail="User profile not found")
+            return {"success": True, "user_id": target_user_id, "display_name": payload.display_name.strip()}
+    except httpx.HTTPError as exc:
+        logger.error("Admin account update connection error type=%s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Could not update account settings") from exc
 
 
 @app.post("/api/v1/admin/users/{target_user_id}/token-limit")
