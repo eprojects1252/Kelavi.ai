@@ -76,7 +76,7 @@ async def health():
     }
 
 
-async def get_monthly_token_quota(user_id: str) -> tuple[int, int]:
+async def get_monthly_token_quota(user_id: str) -> tuple[int, int, int]:
     """Return (used_tokens, effective_monthly_limit) using trusted server-side queries."""
     if not SUPABASE_SERVICE_ROLE_KEY:
         raise HTTPException(status_code=503, detail="Token limit service is not configured")
@@ -93,7 +93,7 @@ async def get_monthly_token_quota(user_id: str) -> tuple[int, int]:
                 f"{SUPABASE_URL}/rest/v1/user_subscriptions",
                 headers=headers,
                 params={
-                    "select": "custom_monthly_token_limit,custom_limit_enabled,plans(monthly_token_limit)",
+                    "select": "custom_monthly_token_limit,custom_limit_enabled,plans(monthly_token_limit,requests_per_minute)",
                     "user_id": f"eq.{user_id}",
                     "status": "eq.active",
                     "order": "created_at.desc",
@@ -116,6 +116,7 @@ async def get_monthly_token_quota(user_id: str) -> tuple[int, int]:
                 plan_data = {}
 
             plan_limit = plan_data.get("monthly_token_limit")
+            requests_per_minute = int(plan_data.get("requests_per_minute") or 0)
             custom_limit = subscription.get("custom_monthly_token_limit")
             custom_enabled = subscription.get("custom_limit_enabled") is True
             effective_limit = custom_limit if custom_enabled and custom_limit is not None else plan_limit
@@ -147,7 +148,7 @@ async def get_monthly_token_quota(user_id: str) -> tuple[int, int]:
                     break
                 offset += page_size
 
-            return used_tokens, int(effective_limit)
+            return used_tokens, int(effective_limit), requests_per_minute
     except httpx.HTTPError as exc:
         logger.error("Token quota lookup connection error type=%s", type(exc).__name__)
         raise HTTPException(status_code=502, detail="Could not check your token usage") from exc
@@ -201,12 +202,43 @@ def extract_reply(data: dict) -> str:
 
 @app.post("/api/v1/chat")
 async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
-    used_tokens, token_limit = await get_monthly_token_quota(str(user.get("id", "")))
+    used_tokens, token_limit, requests_per_minute = await get_monthly_token_quota(str(user.get("id", "")))
     if used_tokens >= token_limit:
         raise HTTPException(
             status_code=429,
             detail=f"Monthly token limit reached ({used_tokens:,}/{token_limit:,}). Your limit resets at the start of next month.",
         )
+    if requests_per_minute > 0:
+        minute_start = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 60))
+        headers = {
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                recent_response = await client.get(
+                    f"{SUPABASE_URL}/rest/v1/usage_logs",
+                    headers=headers,
+                    params={
+                        "select": "id",
+                        "user_id": f"eq.{user.get('id', '')}",
+                        "created_at": f"gte.{minute_start}",
+                        "order": "created_at.desc",
+                        "limit": str(requests_per_minute + 1),
+                    },
+                )
+            if recent_response.status_code != 200:
+                logger.error("Rate limit usage lookup failed status=%s", recent_response.status_code)
+                raise HTTPException(status_code=503, detail="Could not verify your request rate")
+            recent_requests = len(recent_response.json())
+        except httpx.HTTPError as exc:
+            logger.error("Rate limit lookup connection error type=%s", type(exc).__name__)
+            raise HTTPException(status_code=502, detail="Could not check your request rate") from exc
+        if recent_requests >= requests_per_minute:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Request rate limit reached ({recent_requests}/{requests_per_minute} per minute). Please wait a minute and try again.",
+            )
     if not OPENROUTER_API_KEY:
         raise HTTPException(status_code=503, detail="OpenRouter API key is not configured on the backend")
     started_at = time.perf_counter()
