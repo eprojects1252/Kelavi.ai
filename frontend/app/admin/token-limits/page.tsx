@@ -6,6 +6,7 @@ import { getSupabaseBrowserClient } from "../../../lib/supabase";
 
 type AdminUser = { id: string; display_name: string | null; role: string | null };
 
+
 export default function AdminTokenLimitsPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
@@ -15,6 +16,7 @@ export default function AdminTokenLimitsPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [monthlyLimit, setMonthlyLimit] = useState("10000");
+  const [displayName, setDisplayName] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -49,6 +51,8 @@ export default function AdminTokenLimitsPage() {
         if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Could not load user accounts.");
         const loadedUsers = Array.isArray(result.users) ? result.users as AdminUser[] : [];
         setUsers(loadedUsers);
+        const selected = loadedUsers.find((item) => item.id === authData.user.id) || loadedUsers[0];
+        setDisplayName(selected?.display_name || "");
         if (!loadedUsers.some((item) => item.id === authData.user.id) && loadedUsers.length) {
           setTargetUserId(loadedUsers[0].id);
         }
@@ -58,6 +62,24 @@ export default function AdminTokenLimitsPage() {
     }
     initialise().catch(() => router.replace("/dashboard"));
   }, [router]);
+
+  async function saveAccountName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token || !apiUrl || !targetUserId || !displayName.trim()) { setNotice("Enter a valid account name."); return; }
+    setSaving(true); setNotice("");
+    try {
+      const response = await fetch(apiUrl + "/api/v1/admin/users/" + encodeURIComponent(targetUserId) + "/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ display_name: displayName.trim() }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Could not update account name.");
+      setUsers((current) => current.map((item) => item.id === targetUserId ? { ...item, display_name: displayName.trim() } : item));
+      setNotice("Account name updated by administrator.");
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Could not update account name."); }
+    finally { setSaving(false); }
+  }
 
   async function saveLimit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,9 +153,14 @@ export default function AdminTokenLimitsPage() {
         <p>Set a monthly token allowance for an individual account. A custom limit overrides the user's plan limit.</p>
         <section className="dashboard-profile-card">
           <div className="dashboard-profile-heading"><div><small>USER LIMIT SETTINGS</small><h2>Manage monthly allowance</h2></div></div>
+          <form className="dashboard-profile-form" onSubmit={saveAccountName}>
+            <label htmlFor="account-display-name">Admin: edit selected user account name</label>
+            <input id="account-display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={80} required />
+            <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save account name"}</button>
+          </form>
           <form className="dashboard-profile-form" onSubmit={saveLimit}>
             <label htmlFor="target-user-id">Select user account</label>
-            <select id="target-user-id" value={targetUserId} onChange={(event) => setTargetUserId(event.target.value)} required disabled={usersLoading || users.length === 0}>
+            <select id="target-user-id" value={targetUserId} onChange={(event) => { const id = event.target.value; setTargetUserId(id); setDisplayName(users.find((item) => item.id === id)?.display_name || ""); }} required disabled={usersLoading || users.length === 0}>
               {users.length === 0 ? <option value="">No user profiles found</option> : users.map((item) => (
                 <option key={item.id} value={item.id}>{item.display_name || "Unnamed user"} · {item.role || "user"} · {item.id}</option>
               ))}
