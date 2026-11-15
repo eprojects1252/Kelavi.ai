@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 const modes = [
-  { icon: "✦", title: "AI Assistant", detail: "Ask questions and get clear answers" },
+  { icon: "logo", title: "AI Assistant", detail: "Ask questions and get clear answers" },
   { icon: "⌘", title: "Coding AI", detail: "Build, debug and improve your code" },
   { icon: "▤", title: "Project Knowledge", detail: "Work with your project notes and files" },
   { icon: "◉", title: "Vision Research", detail: "Explore coins, stamps and collectibles" },
@@ -35,7 +35,7 @@ export default function Home() {
           <label className="sr-only" htmlFor="prompt">Ask Kilavi.Ai</label>
           <textarea id="prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ask anything or describe what you want to build..." rows={3} />
           <div className="composer-bottom">
-            <span className="model-label">✦ Kilavi AI</span>
+            <span className="model-label"><img className="inline-k2-logo" src="/k2-brain-logo.png" alt="" /> Kilavi AI</span>
             <button className="send" type="button" onClick={startChat} disabled={!prompt.trim()}>Start ↗</button>
           </div>
         </div>
@@ -44,7 +44,7 @@ export default function Home() {
         <div className="mode-grid">
           {modes.map((mode) => (
             <button className={selected === mode.title ? "mode-card active" : "mode-card"} key={mode.title} onClick={() => setSelected(mode.title)} type="button">
-              <span className="mode-icon">{mode.icon}</span>
+              <span className="mode-icon">{mode.icon === "logo" ? <img className="workspace-k2-logo" src="/k2-brain-logo.png" alt="" /> : mode.icon}</span>
               <span className="mode-title">{mode.title}</span>
               <span className="mode-detail">{mode.detail}</span>
             </button>
