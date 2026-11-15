@@ -200,3 +200,8 @@ a:focus-visible {
 .usage-alert-limit{border-color:#ff657055;background:#ff657012;color:#ffb5bd}
 .usage-message{padding:17px;border:1px solid var(--line);border-radius:13px;background:#11172a99;color:var(--muted);font-size:12px}
 @media(max-width:620px){.dashboard-profile-card{padding:14px}.dashboard-profile-form{grid-template-columns:1fr}.dashboard-profile-form button{justify-self:start}.usage-grid{grid-template-columns:1fr}.usage-card{padding:16px}.usage-card-heading{gap:8px}.usage-donut{width:104px;height:104px;flex-basis:104px}}
+
+
+/* Amore Christmas: numeric typography only */
+@font-face{font-family:'Amore Christmas';src:url('/fonts/AmoreChristmas.otf') format('opentype');font-style:normal;font-weight:400;font-display:swap}
+.number-font,.usage-number,.usage-donut-center strong{font-family:'Amore Christmas','Space Grotesk',sans-serif;font-variant-numeric:lining-nums}
