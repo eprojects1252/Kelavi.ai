@@ -45,10 +45,6 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<Plan>({ name: "Free", monthly_token_limit: 0 });
   const [customLimit, setCustomLimit] = useState<number | null>(null);
   const [customLimitEnabled, setCustomLimitEnabled] = useState(false);
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [nameDraft, setNameDraft] = useState("");
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileNotice, setProfileNotice] = useState("");
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
@@ -68,7 +64,6 @@ export default function DashboardPage() {
       ]);
       if (!active) return;
       setProfile(profileResult.data);
-      setNameDraft(profileResult.data?.display_name || currentUser.user_metadata?.display_name || "");
       if (subscriptionResult.data) {
         setCustomLimit(subscriptionResult.data.custom_monthly_token_limit == null ? null : Number(subscriptionResult.data.custom_monthly_token_limit));
         setCustomLimitEnabled(Boolean(subscriptionResult.data.custom_limit_enabled));
@@ -89,18 +84,6 @@ export default function DashboardPage() {
     const { data: listener } = supabase.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") router.replace("/auth"); });
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, [router]);
-
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!user) return;
-    const cleanName = nameDraft.trim();
-    if (!cleanName) { setProfileNotice("Please enter your display name."); return; }
-    setSavingProfile(true); setProfileNotice("");
-    const { data, error } = await getSupabaseBrowserClient().from("profiles").update({ display_name: cleanName }).eq("id", user.id).select("display_name, role").single();
-    if (error) setProfileNotice("Could not update your profile. Please try again.");
-    else { setProfile(data); setEditingProfile(false); setProfileNotice("Profile updated successfully."); }
-    setSavingProfile(false);
-  }
 
   async function signOut() {
     setSigningOut(true);
@@ -130,22 +113,17 @@ export default function DashboardPage() {
         <div className="eyebrow"><span className="pulse" /> YOUR PRIVATE WORKSPACE</div>
         <h1 className="dashboard-welcome-title">Welcome, <span>{displayName}</span>{profile?.role === "admin" && <span className="dashboard-role-badge">ADMIN</span>}</h1>
         <p>Your Kilavi.Ai workspace is ready. Choose a tool to get started.</p>
-        <div className="dashboard-account">
-          <div><small>ACCOUNT EMAIL</small><strong>{user?.email}</strong></div>
-          {profile?.role === "admin" && <div><small>ADMIN TOOLS</small><strong><a href="/admin/token-limits">Manage token limits ↗</a></strong></div>}
-        </div>
-
         <section className="dashboard-profile-card">
-          <div className="dashboard-profile-heading"><div><small>ACCOUNT SETTINGS</small><h2>Profile Settings</h2></div>
-            <button className="dashboard-profile-edit" onClick={() => { setEditingProfile(!editingProfile); setProfileNotice(""); }}>{editingProfile ? "Cancel" : "Edit name"}</button>
+          <div className="dashboard-profile-heading"><div><small>ACCOUNT SETTINGS</small><h2>Profile Settings</h2></div></div>
+          <div className="dashboard-profile-details">
+            <div><small>ACCOUNT NAME</small><strong>{displayName}</strong></div>
+            <div><small>{(user?.email || "").toLowerCase().endsWith("@gmail.com") ? "PERSONAL EMAIL · GOOGLE GMAIL" : (user?.email || "").toLowerCase().match(/@(outlook|hotmail|yahoo|icloud)\./) ? "PERSONAL EMAIL" : "BUSINESS EMAIL"}</small><strong>{user?.email || "Not available"}</strong></div>
           </div>
-          {editingProfile ? <form className="dashboard-profile-form" onSubmit={saveProfile}>
-            <label htmlFor="profile-display-name">Display name</label>
-            <input id="profile-display-name" value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} maxLength={80} required />
-            <button type="submit" disabled={savingProfile}>{savingProfile ? "Saving..." : "Save profile"}</button>
-          </form> : <p className="dashboard-profile-name">{displayName}</p>}
-          {profileNotice && <p className="dashboard-profile-notice" role="status">{profileNotice}</p>}
+          <p className="dashboard-profile-notice">Account name and email are managed by the administrator. Contact support if a correction is required.</p>
         </section>
+        <div className="dashboard-account">
+          {profile?.role === "admin" && <div><small>ADMIN TOOLS</small><strong><a href="/admin/token-limits">Manage token limits ↗</a> · <a href="/admin/token-limits">Manage account names ↗</a></strong></div>}
+        </div>
       </section>
 
       <section className="dashboard-usage-section">
