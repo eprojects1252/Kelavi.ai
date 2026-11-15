@@ -37,6 +37,11 @@ class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=12000)
 
 
+class CustomTokenLimitRequest(BaseModel):
+    enabled: bool
+    monthly_token_limit: int | None = Field(default=None, ge=1)
+
+
 async def require_user(authorization: str | None = Header(default=None)):
     if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
         raise HTTPException(status_code=503, detail="Supabase backend configuration is missing")
@@ -258,3 +263,66 @@ async def chat(payload: ChatRequest, user: dict = Depends(require_user)):
 
     await record_usage(str(user.get("id", "")), str(data.get("model") or OPENROUTER_MODEL), provider_usage, int((time.perf_counter() - started_at) * 1000))
     return {"reply": reply, "model": OPENROUTER_MODEL, "provider": "openrouter"}
+
+@app.post("/api/v1/admin/users/{target_user_id}/token-limit")
+async def set_user_token_limit(
+    target_user_id: str,
+    payload: CustomTokenLimitRequest,
+    admin: dict = Depends(require_user),
+):
+    """Allow an authenticated admin to set or clear a user's custom monthly token limit."""
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(status_code=503, detail="Admin service is not configured")
+    if payload.enabled and payload.monthly_token_limit is None:
+        raise HTTPException(status_code=400, detail="Enter a custom token limit when enabling it")
+
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            role_response = await client.get(
+                f"{SUPABASE_URL}/rest/v1/profiles",
+                headers=headers,
+                params={"select": "role", "id": f"eq.{admin.get('id', '')}", "limit": "1"},
+            )
+            if role_response.status_code != 200:
+                logger.error("Admin role lookup failed status=%s", role_response.status_code)
+                raise HTTPException(status_code=503, detail="Could not verify admin permissions")
+            role_rows = role_response.json()
+            if not role_rows or role_rows[0].get("role") != "admin":
+                raise HTTPException(status_code=403, detail="Admin access is required")
+
+            update_response = await client.patch(
+                f"{SUPABASE_URL}/rest/v1/user_subscriptions",
+                headers=headers,
+                params={
+                    "user_id": f"eq.{target_user_id}",
+                    "status": "eq.active",
+                },
+                json={
+                    "custom_monthly_token_limit": payload.monthly_token_limit if payload.enabled else None,
+                    "custom_limit_enabled": payload.enabled,
+                    "limit_updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "limit_updated_by": str(admin.get("id", "")),
+                },
+            )
+            if update_response.status_code not in (200, 204):
+                logger.error("Custom token limit update failed status=%s", update_response.status_code)
+                raise HTTPException(status_code=503, detail="Could not save the custom token limit")
+            updated_rows = update_response.json() if update_response.content else []
+            if not updated_rows:
+                raise HTTPException(status_code=404, detail="The user has no active subscription")
+            return {
+                "success": True,
+                "user_id": target_user_id,
+                "custom_limit_enabled": payload.enabled,
+                "custom_monthly_token_limit": payload.monthly_token_limit if payload.enabled else None,
+            }
+    except httpx.HTTPError as exc:
+        logger.error("Custom token limit update connection error type=%s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Could not update the custom token limit") from exc
+
