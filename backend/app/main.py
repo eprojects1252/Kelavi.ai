@@ -28,7 +28,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[x.strip() for x in os.getenv("CORS_ORIGINS", "http://localhost:3000,https://kelaviai.netlify.app").split(",") if x.strip()],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
