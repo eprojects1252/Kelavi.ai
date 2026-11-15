@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Kilavi.Ai — Your AI Workspace",
   description: "One workspace for AI assistance, coding, projects and research.",
   applicationName: "Kilavi.Ai",
-  icons: { icon: "/k2-brain-logo.png", shortcut: "/k2-brain-logo.png", apple: "/k2-brain-logo.png" },
+  icons: { icon: "/fonts/k2-brain-logo.png", shortcut: "/fonts/k2-brain-logo.png", apple: "/fonts/k2-brain-logo.png" },
 };
 
 export const viewport: Viewport = {
