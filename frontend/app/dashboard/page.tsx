@@ -122,7 +122,7 @@ export default function DashboardPage() {
   return (
     <main className="dashboard-shell">
       <header className="dashboard-topbar">
-        <a className="brand" href="/"><span className="brand-mark brand-logo-mark"><img src="/k2-brain-logo.png" alt="" /></span> Kilavi<span className="brand-dot">.Ai</span></a>
+        <a className="brand" href="/"><span className="brand-mark brand-logo-mark"><img src="/fonts/k2-brain-logo.png" alt="" /></span> Kilavi<span className="brand-dot">.Ai</span></a>
         <button className="dashboard-logout" onClick={signOut} disabled={signingOut}>{signingOut ? "Signing out..." : "Sign out"}</button>
       </header>
 
@@ -156,7 +156,7 @@ export default function DashboardPage() {
             <div className="usage-grid">
               <article className="usage-card usage-request-card">
                 <div><span className="usage-card-kicker">AI REQUESTS</span><strong className="usage-number">{requests.toLocaleString()}</strong><span className="usage-card-caption">Requests this month</span></div>
-                <div className="usage-request-icon"><img className="usage-k2-logo" src="/k2-brain-logo.png" alt="" /></div>
+                <div className="usage-request-icon"><img className="usage-k2-logo" src="/fonts/k2-brain-logo.png" alt="" /></div>
               </article>
               <article className="usage-card usage-token-card">
                 <div className="usage-card-heading"><div><span className="usage-card-kicker">MONTHLY TOKEN LIMIT</span><strong className="usage-number">{tokens.toLocaleString()}</strong><span className="usage-card-caption">Tokens consumed</span></div><DonutChart percent={usedPercent} label="Used" color="#3988f7" /></div>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
         <div className="dashboard-section-heading"><div><small>YOUR TOOLS</small><h2>Choose a workspace</h2></div><span>4 workspaces</span></div>
         <div className="dashboard-workspace-grid">
           {workspaces.map((item) => <article className={item.ready ? "dashboard-workspace-card workspace-ready" : "dashboard-workspace-card"} key={item.title}>
-            <span className="dashboard-workspace-icon">{item.icon === "logo" ? <img className="workspace-k2-logo" src="/k2-brain-logo.png" alt="" /> : item.icon}</span><h3>{item.title}</h3><p>{item.description}</p>
+            <span className="dashboard-workspace-icon">{item.icon === "logo" ? <img className="workspace-k2-logo" src="/fonts/k2-brain-logo.png" alt="" /> : item.icon}</span><h3>{item.title}</h3><p>{item.description}</p>
             {item.ready ? <a className="workspace-open" href={item.href}>Open workspace ↗</a> : <span className="workspace-coming-soon">Coming next</span>}
           </article>)}
         </div>
