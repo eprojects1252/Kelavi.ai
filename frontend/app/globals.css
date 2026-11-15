@@ -260,3 +260,104 @@ a:focus-visible {
   animation: none !important;
   opacity: 1 !important;
 }
+
+
+/* Kilavi.Ai light glassmorphism theme */
+:root {
+  color-scheme: light;
+  --bg: #f3f5fc;
+  --panel: rgba(255,255,255,.62);
+  --line: rgba(116,132,170,.22);
+  --muted: #68738d;
+  --text: #202943;
+  --accent: #7665d8;
+  --cyan: #39a9c6;
+}
+html, body {
+  background: #f3f5fc !important;
+  color: #202943 !important;
+}
+body {
+  background-image:
+    radial-gradient(ellipse at 12% 5%, rgba(180,169,255,.34), transparent 42%),
+    radial-gradient(ellipse at 88% 18%, rgba(128,220,231,.28), transparent 38%),
+    linear-gradient(135deg,#f8f9ff 0%,#edf2fb 55%,#f4f7ff 100%) !important;
+  background-attachment: fixed;
+}
+.topbar,.dashboard-topbar,.assistant-topbar {
+  border-color: rgba(116,132,170,.2);
+}
+.brand,.dashboard-shell,.assistant-shell,.shell { color: #202943; }
+.signin,.dashboard-logout,.assistant-history-toggle,.dashboard-profile-edit {
+  color:#33405d;
+  background:rgba(255,255,255,.55);
+  border-color:rgba(125,139,176,.25);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.eyebrow,.section-heading,.dashboard-account small,.dashboard-section-heading small,
+.auth-kicker,.usage-card-kicker { color:#7568c8; }
+.intro,.muted,.dashboard-welcome>p,.dashboard-workspace-card p,
+.assistant-heading>p,.assistant-welcome,.assistant-welcome p,
+.usage-card-caption,.usage-limit-caption,.usage-period-note { color:#68738d; }
+h1,.dashboard-welcome h1,.assistant-heading h1 { color:#202943; }
+.composer,.auth-card,.assistant-composer,.dashboard-profile-card,.usage-card,
+.dashboard-account>div,.dashboard-workspace-card,.mode-card,.assistant-history-panel,
+.assistant-message p,.assistant-history-item,.usage-message {
+  background:rgba(255,255,255,.58) !important;
+  border:1px solid rgba(255,255,255,.78) !important;
+  box-shadow:0 12px 36px rgba(63,79,125,.09), inset 0 1px 0 rgba(255,255,255,.85);
+  backdrop-filter:blur(22px) saturate(145%);
+  -webkit-backdrop-filter:blur(22px) saturate(145%);
+  color:#26324d;
+}
+.composer,.assistant-composer,.auth-card { border-color:rgba(157,145,225,.25) !important; }
+.composer textarea,.assistant-composer textarea,
+.auth-form input,.dashboard-profile-form input {
+  color:#202943 !important;
+}
+.composer textarea::placeholder,.assistant-composer textarea::placeholder { color:#8993a9; }
+.auth-form label,.dashboard-profile-name,.dashboard-profile-edit,
+.assistant-message p,.assistant-history-item { color:#34415e; }
+.auth-form input,.dashboard-profile-form input,.auth-tabs {
+  background:rgba(255,255,255,.72);
+  color:#202943;
+  border-color:rgba(125,139,176,.25);
+}
+.auth-tab { color:#68738d; }
+.auth-tab.selected { background:rgba(126,108,216,.15);color:#5143a5; }
+.mode-card { color:#26324d; }
+.mode-card.active,.workspace-ready {
+  background:rgba(220,216,255,.48) !important;
+  border-color:rgba(126,108,216,.38) !important;
+}
+.mode-icon,.dashboard-workspace-icon,.assistant-back { color:#7163c7; }
+.mode-detail,.dashboard-workspace-card p { color:#68738d; }
+.assistant-message p { background:rgba(255,255,255,.7) !important; color:#26324d; }
+.assistant-message.user p { background:rgba(218,235,250,.78) !important; }
+.assistant-message>span { background:rgba(126,108,216,.13);color:#6455b5; }
+.assistant-history-item.active { background:rgba(126,108,216,.12) !important;border-color:rgba(126,108,216,.28) !important; }
+.assistant-welcome strong { color:#26324d; }
+.usage-legend span,.usage-number,.usage-donut-center strong { color:#26324d; }
+.usage-request-icon { background:rgba(126,108,216,.12);color:#6d5fc2;box-shadow:none; }
+.dashboard-profile-notice { color:#16835e; }
+.dashboard-footer,footer { color:#7a849b;border-color:rgba(116,132,170,.2); }
+.workspace-coming-soon { color:#16856f;border-color:rgba(22,133,111,.22);background:rgba(22,133,111,.07); }
+.usage-alert { color:#94600b;background:rgba(245,190,76,.13); }
+.usage-alert-limit,.auth-message.error,.assistant-error { color:#b43d52; }
+.auth-message.success { color:#16835e; }
+.send,.auth-submit,.assistant-composer-footer button,.workspace-open,
+.dashboard-profile-form button {
+  background:linear-gradient(105deg,#a99af1,#79cddd);
+  color:#17213a;
+  box-shadow:0 5px 16px rgba(115,133,194,.16);
+}
+/* Keep the supplied K² artwork natural: no glow, tint, or square backing */
+.brand-logo-mark { background:transparent !important;border:0 !important;box-shadow:none !important;border-radius:0 !important; }
+.brand-logo-mark img,.assistant-avatar,.assistant-avatar.welcome-avatar,
+.inline-k2-logo,.workspace-k2-logo,.usage-k2-logo {
+  mix-blend-mode:normal !important;
+  filter:none !important;
+  animation:none !important;
+  opacity:1 !important;
+}
