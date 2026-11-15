@@ -149,8 +149,8 @@ export default function AdminTokenLimitsPage() {
       </header>
       <section className="dashboard-welcome">
         <div className="eyebrow"><span className="pulse" /> ADMIN CONTROL</div>
-        <h1>Custom <span>Token Limits</span></h1>
-        <p>Set a monthly token allowance for an individual account. A custom limit overrides the user's plan limit.</p>
+        <h1>Admin <span>Account Controls</span></h1>
+        <p>Manage user account names and monthly token allowances. Account changes are restricted to administrators.</p>
         <section className="dashboard-profile-card">
           <div className="dashboard-profile-heading"><div><small>USER LIMIT SETTINGS</small><h2>Manage monthly allowance</h2></div></div>
           <form className="dashboard-profile-form" onSubmit={saveAccountName}>
