@@ -490,3 +490,14 @@ header .brand-logo-mark img,
 }
 
 .dashboard-profile-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:18px}.dashboard-profile-details>div{display:flex;flex-direction:column;gap:7px;padding:14px 16px;border:1px solid var(--line,rgba(130,145,180,.2));border-radius:14px;background:rgba(130,145,180,.06)}.dashboard-profile-details small{font-size:11px;letter-spacing:.08em;opacity:.7}.dashboard-profile-details strong{font-size:14px;overflow-wrap:anywhere}
+
+
+/* Admin token controls: keep Save and Clear together in one action row */
+.admin-token-form{grid-template-columns:1fr;max-width:100%}
+.admin-token-form label{grid-column:1}
+.admin-token-form select{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.72);color:#202943;padding:11px 12px;font:inherit;font-size:13px}
+.admin-token-actions{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;margin-top:3px}
+.admin-token-actions button{min-width:88px;cursor:pointer}
+.admin-token-actions .dashboard-profile-edit{background:rgba(255,255,255,.55);color:#34415e;border:1px solid rgba(125,139,176,.3)}
+.admin-token-actions button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:520px){.admin-token-actions{flex-direction:row;align-items:center}.admin-token-actions button{justify-self:auto}}
