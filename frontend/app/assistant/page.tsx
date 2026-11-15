@@ -171,7 +171,7 @@ export default function AssistantPage() {
   return (
     <main className="assistant-shell">
       <header className="assistant-topbar">
-        <a className="brand" href="/dashboard"><span className="brand-mark brand-logo-mark"><img src="/k2-brain-logo.png" alt="" /></span> Kilavi<span className="brand-dot">.Ai</span></a>
+        <a className="brand" href="/dashboard"><span className="brand-mark brand-logo-mark"><img src="/fonts/k2-brain-logo.png" alt="" /></span> Kilavi<span className="brand-dot">.Ai</span></a>
         <div className="assistant-top-actions">
           <button className="assistant-history-toggle" type="button" onClick={() => setHistoryOpen((open) => !open)}>☷ History</button>
           <a className="assistant-back" href="/dashboard">← Dashboard</a>
@@ -212,17 +212,17 @@ export default function AssistantPage() {
       <section className="assistant-chat" aria-label="Chat messages">
         {messages.length === 0 && (
           <div className="assistant-welcome">
-            <span className="assistant-welcome-mark"><img className="assistant-avatar welcome-avatar" src="/k2-brain-logo.png" alt="Kilavi.Ai" /></span>
+            <span className="assistant-welcome-mark"><img className="assistant-avatar welcome-avatar" src="/fonts/k2-brain-logo.png" alt="Kilavi.Ai" /></span>
             <strong>வணக்கம்! நான் Kilavi.Ai.</strong>
             <p>இன்று உங்களுக்கு என்ன உதவி செய்ய வேண்டும்?</p>
           </div>
         )}
         {messages.map((item, index) => (
           <div className={"assistant-message " + item.role} key={item.id || index}>
-            <span>{item.role === "assistant" ? <img className={"assistant-avatar" + (sending ? " responding" : "")} src="/k2-brain-logo.png" alt="Kilavi.Ai" /> : "You"}</span><p>{item.content}</p>
+            <span>{item.role === "assistant" ? <img className={"assistant-avatar" + (sending ? " responding" : "")} src="/fonts/k2-brain-logo.png" alt="Kilavi.Ai" /> : "You"}</span><p>{item.content}</p>
           </div>
         ))}
-        {sending && <div className="assistant-typing"><img className="assistant-avatar responding" src="/k2-brain-logo.png" alt="" /> <span>Kilavi.Ai is thinking...</span></div>}
+        {sending && <div className="assistant-typing"><img className="assistant-avatar responding" src="/fonts/k2-brain-logo.png" alt="" /> <span>Kilavi.Ai is thinking...</span></div>}
         <div ref={bottomRef} />
       </section>
       {error && <p className="assistant-error" role="alert">{error}</p>}
