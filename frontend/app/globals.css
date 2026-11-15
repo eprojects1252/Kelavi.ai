@@ -218,3 +218,10 @@ a:focus-visible {
 @keyframes k2-logo-glow{0%,100%{opacity:.88;filter:drop-shadow(0 0 4px rgba(169,155,255,.35))}50%{opacity:1;filter:drop-shadow(0 0 10px rgba(114,217,239,.72))}}
 @keyframes k2-logo-responding{0%,100%{transform:scale(.96);opacity:.82}50%{transform:scale(1.09);opacity:1}}
 @media(prefers-reduced-motion:reduce){.assistant-avatar,.assistant-avatar.responding{animation:none}}
+
+
+/* Consistent K² logo in every site header; visually blend the white source canvas into the dark UI */
+.brand-logo-mark{background:transparent!important;box-shadow:none!important;overflow:visible}
+.brand-logo-mark img{display:block;width:34px;height:34px;object-fit:contain;background:transparent;mix-blend-mode:multiply;filter:brightness(1.2) contrast(1.08) drop-shadow(0 0 7px rgba(169,155,255,.48));animation:k2-logo-glow 3.2s ease-in-out infinite}
+.assistant-avatar{mix-blend-mode:multiply}
+.assistant-avatar.welcome-avatar{mix-blend-mode:multiply}
