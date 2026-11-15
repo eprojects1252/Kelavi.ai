@@ -117,7 +117,7 @@ export default function DashboardPage() {
           <div className="dashboard-profile-heading"><div><small>ACCOUNT SETTINGS</small><h2>Profile Settings</h2></div></div>
           <div className="dashboard-profile-details">
             <div><small>ACCOUNT NAME</small><strong>{displayName}</strong></div>
-            <div><small>{(user?.email || "").toLowerCase().endsWith("@gmail.com") ? "PERSONAL EMAIL · GOOGLE GMAIL" : (user?.email || "").toLowerCase().match(/@(outlook|hotmail|yahoo|icloud)\./) ? "PERSONAL EMAIL" : "BUSINESS EMAIL"}</small><strong>{user?.email || "Not available"}</strong></div>
+            <div><small>{/@(gmail|googlemail)\.com$/i.test(user?.email || "") ? "PERSONAL EMAIL · GOOGLE GMAIL" : /@(outlook|hotmail|yahoo|icloud|protonmail|aol)\./i.test(user?.email || "") ? "PERSONAL EMAIL" : "BUSINESS EMAIL"}</small><strong>{user?.email || "Not available"}</strong></div>
           </div>
           <p className="dashboard-profile-notice">Account name and email are managed by the administrator. Contact support if a correction is required.</p>
         </section>
