@@ -29,7 +29,7 @@ export default function AuthForm() {
           password,
           options: {
             data: { display_name: name.trim() },
-            emailRedirectTo: window.location.origin + "/auth",
+            emailRedirectTo: "https://kelavi-ai.vercel.app/auth",
           },
         });
         if (authError) throw authError;
@@ -56,9 +56,7 @@ export default function AuthForm() {
 
   return (
     <section className="auth-card">
-      <div className="auth-kicker">WELCOME TO YOUR AI WORKSPACE</div>
       <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
-      <p className="auth-description">{mode === "login" ? "Sign in to continue to Kilavi.Ai." : "Start building with Kilavi.Ai using your email."}</p>
 
       <div className="auth-tabs">
         <button type="button" className={mode === "login" ? "auth-tab selected" : "auth-tab"} onClick={() => { setMode("login"); setError(""); setNotice(""); }}>Sign in</button>
