@@ -225,3 +225,10 @@ a:focus-visible {
 .brand-logo-mark img{display:block;width:34px;height:34px;object-fit:contain;background:transparent;mix-blend-mode:multiply;filter:brightness(1.2) contrast(1.08) drop-shadow(0 0 7px rgba(169,155,255,.48));animation:k2-logo-glow 3.2s ease-in-out infinite}
 .assistant-avatar{mix-blend-mode:multiply}
 .assistant-avatar.welcome-avatar{mix-blend-mode:multiply}
+
+
+/* K² logo replacements for the home composer and AI workspace icons */
+.model-label{display:inline-flex;align-items:center;gap:7px}
+.inline-k2-logo{width:22px;height:22px;object-fit:contain;mix-blend-mode:multiply;filter:drop-shadow(0 0 5px rgba(169,155,255,.5))}
+.workspace-k2-logo{display:block;width:30px;height:30px;object-fit:contain;mix-blend-mode:multiply;filter:drop-shadow(0 0 6px rgba(169,155,255,.58));animation:k2-logo-glow 3.2s ease-in-out infinite}
+.usage-k2-logo{display:block;width:39px;height:39px;object-fit:contain;mix-blend-mode:multiply;filter:drop-shadow(0 0 7px rgba(169,155,255,.6));animation:k2-logo-glow 3.2s ease-in-out infinite}
