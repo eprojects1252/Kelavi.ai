@@ -93,7 +93,7 @@ export default function DashboardPage() {
 
   if (loading) return <main className="dashboard-shell"><div className="dashboard-loading">Loading your secure workspace...</div></main>;
 
-  const displayName = profile?.display_name || user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User";
+  const displayName = profile?.display_name || user?.email?.split("@")[0] || "User";
   const requests = usageRows.length;
   const tokens = usageRows.reduce((sum, row) => sum + Number(row.total_tokens || 0), 0);
   const planLimit = Number(plan.monthly_token_limit || 0);
