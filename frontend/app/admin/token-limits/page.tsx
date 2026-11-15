@@ -4,12 +4,16 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "../../../lib/supabase";
 
+type AdminUser = { id: string; display_name: string | null; role: string | null };
+
 export default function AdminTokenLimitsPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
   const [apiUrl, setApiUrl] = useState("");
   const [adminReady, setAdminReady] = useState(false);
   const [targetUserId, setTargetUserId] = useState("");
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [monthlyLimit, setMonthlyLimit] = useState("10000");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
@@ -30,9 +34,26 @@ export default function AdminTokenLimitsPage() {
         return;
       }
       const { data: sessionData } = await supabase.auth.getSession();
-      setToken(sessionData.session?.access_token || "");
-      setApiUrl((process.env.NEXT_PUBLIC_KELAVI_API_URL || "").replace(/\/$/, ""));
+      const accessToken = sessionData.session?.access_token || "";
+      const backendUrl = (process.env.NEXT_PUBLIC_KELAVI_API_URL || "").replace(/\/$/, "");
+      setToken(accessToken);
+      setApiUrl(backendUrl);
       setTargetUserId(authData.user.id);
+      if (!accessToken || !backendUrl) {
+        setNotice("Backend API connection is not configured.");
+      } else {
+        const response = await fetch(backendUrl + "/api/v1/admin/users", {
+          headers: { Authorization: "Bearer " + accessToken },
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Could not load user accounts.");
+        const loadedUsers = Array.isArray(result.users) ? result.users as AdminUser[] : [];
+        setUsers(loadedUsers);
+        if (!loadedUsers.some((item) => item.id === authData.user.id) && loadedUsers.length) {
+          setTargetUserId(loadedUsers[0].id);
+        }
+      }
+      setUsersLoading(false);
       setAdminReady(true);
     }
     initialise().catch(() => router.replace("/dashboard"));
@@ -111,8 +132,13 @@ export default function AdminTokenLimitsPage() {
         <section className="dashboard-profile-card">
           <div className="dashboard-profile-heading"><div><small>USER LIMIT SETTINGS</small><h2>Manage monthly allowance</h2></div></div>
           <form className="dashboard-profile-form" onSubmit={saveLimit}>
-            <label htmlFor="target-user-id">Target user UUID</label>
-            <input id="target-user-id" value={targetUserId} onChange={(event) => setTargetUserId(event.target.value)} placeholder="Supabase Auth user UUID" required />
+            <label htmlFor="target-user-id">Select user account</label>
+            <select id="target-user-id" value={targetUserId} onChange={(event) => setTargetUserId(event.target.value)} required disabled={usersLoading || users.length === 0}>
+              {users.length === 0 ? <option value="">No user profiles found</option> : users.map((item) => (
+                <option key={item.id} value={item.id}>{item.display_name || "Unnamed user"} · {item.role || "user"} · {item.id}</option>
+              ))}
+            </select>
+            {usersLoading && <p>Loading user accounts...</p>}
             <label htmlFor="monthly-token-limit">Custom monthly token limit</label>
             <input id="monthly-token-limit" type="number" min="1" step="1" value={monthlyLimit} onChange={(event) => setMonthlyLimit(event.target.value)} required />
             <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save custom limit"}</button>
