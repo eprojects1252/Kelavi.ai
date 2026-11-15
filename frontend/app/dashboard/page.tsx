@@ -128,11 +128,10 @@ export default function DashboardPage() {
 
       <section className="dashboard-welcome">
         <div className="eyebrow"><span className="pulse" /> YOUR PRIVATE WORKSPACE</div>
-        <h1>Welcome, <span>{displayName}</span></h1>
+        <h1 className="dashboard-welcome-title">Welcome, <span>{displayName}</span>{profile?.role === "admin" && <span className="dashboard-role-badge">ADMIN</span>}</h1>
         <p>Your Kilavi.Ai workspace is ready. Choose a tool to get started.</p>
         <div className="dashboard-account">
           <div><small>ACCOUNT EMAIL</small><strong>{user?.email}</strong></div>
-          <div><small>ACCOUNT ROLE</small><strong>{profile?.role || "user"}</strong></div>
           {profile?.role === "admin" && <div><small>ADMIN TOOLS</small><strong><a href="/admin/token-limits">Manage token limits ↗</a></strong></div>}
         </div>
 
