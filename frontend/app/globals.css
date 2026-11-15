@@ -488,3 +488,5 @@ header .brand-logo-mark img,
   font-size: clamp(25px, 6vw, 34px);
   letter-spacing: -1.2px;
 }
+
+.dashboard-profile-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:18px}.dashboard-profile-details>div{display:flex;flex-direction:column;gap:7px;padding:14px 16px;border:1px solid var(--line,rgba(130,145,180,.2));border-radius:14px;background:rgba(130,145,180,.06)}.dashboard-profile-details small{font-size:11px;letter-spacing:.08em;opacity:.7}.dashboard-profile-details strong{font-size:14px;overflow-wrap:anywhere}
