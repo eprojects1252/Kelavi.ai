@@ -122,7 +122,7 @@ export default function DashboardPage() {
   return (
     <main className="dashboard-shell">
       <header className="dashboard-topbar">
-        <a className="brand" href="/"><span className="brand-mark">K</span> Kilavi<span className="brand-dot">.Ai</span></a>
+        <a className="brand" href="/"><span className="brand-mark brand-logo-mark"><img src="/k2-brain-logo.png" alt="" /></span> Kilavi<span className="brand-dot">.Ai</span></a>
         <button className="dashboard-logout" onClick={signOut} disabled={signingOut}>{signingOut ? "Signing out..." : "Sign out"}</button>
       </header>
 
