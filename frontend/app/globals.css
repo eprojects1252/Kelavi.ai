@@ -464,3 +464,27 @@ h1,.dashboard-welcome h1,.assistant-heading h1 { color:#202943; }
   letter-spacing: .08em;
   vertical-align: middle;
 }
+
+
+/* Header brand icon: enlarge only the header mark; request tile stays unchanged */
+header .brand-logo-mark,
+.auth-brand .brand-logo-mark {
+  width: 136px !important;
+  height: 136px !important;
+  min-width: 136px !important;
+  min-height: 136px !important;
+}
+header .brand-logo-mark img,
+.auth-brand .brand-logo-mark img {
+  width: 136px !important;
+  height: 136px !important;
+}
+.auth-brand {
+  align-items: center;
+  gap: 8px;
+}
+.auth-card h1 {
+  white-space: nowrap;
+  font-size: clamp(25px, 6vw, 34px);
+  letter-spacing: -1.2px;
+}
