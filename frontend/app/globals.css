@@ -205,3 +205,16 @@ a:focus-visible {
 /* Amore Christmas: numeric typography only */
 @font-face{font-family:'Amore Christmas';src:url('/fonts/Amore%20Christmas.otf') format('opentype');font-style:normal;font-weight:400;font-display:swap}
 .number-font,.usage-number,.usage-donut-center strong{font-family:'Amore Christmas','Space Grotesk',sans-serif;font-variant-numeric:lining-nums}
+
+
+/* K² Brain Network assistant identity */
+.assistant-message.assistant>span{background:transparent;overflow:visible;padding:0}
+.assistant-avatar{display:block;width:27px;height:27px;object-fit:contain;background:transparent;filter:drop-shadow(0 0 5px rgba(169,155,255,.48));animation:k2-logo-glow 3.2s ease-in-out infinite}
+.assistant-avatar.welcome-avatar{width:44px;height:44px;filter:drop-shadow(0 0 9px rgba(169,155,255,.6));animation:k2-logo-glow 3.2s ease-in-out infinite}
+.assistant-welcome-mark{background:transparent;box-shadow:none}
+.assistant-typing{display:flex;align-items:center;gap:10px;padding-left:38px}
+.assistant-typing .assistant-avatar{width:29px;height:29px}
+.assistant-avatar.responding{animation:k2-logo-responding 1.05s ease-in-out infinite;filter:drop-shadow(0 0 9px rgba(114,217,239,.8)) drop-shadow(0 0 15px rgba(169,155,255,.55))}
+@keyframes k2-logo-glow{0%,100%{opacity:.88;filter:drop-shadow(0 0 4px rgba(169,155,255,.35))}50%{opacity:1;filter:drop-shadow(0 0 10px rgba(114,217,239,.72))}}
+@keyframes k2-logo-responding{0%,100%{transform:scale(.96);opacity:.82}50%{transform:scale(1.09);opacity:1}}
+@media(prefers-reduced-motion:reduce){.assistant-avatar,.assistant-avatar.responding{animation:none}}
