@@ -420,3 +420,47 @@ h1,.dashboard-welcome h1,.assistant-heading h1 { color:#202943; }
   animation: none !important;
   object-fit: contain !important;
 }
+
+
+/* Align the enlarged AI request logo cleanly inside its own icon tile */
+.usage-request-icon {
+  width: 84px !important;
+  height: 84px !important;
+  min-width: 84px;
+  flex: 0 0 84px;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+.usage-request-icon .usage-k2-logo {
+  display: block;
+  width: 78px !important;
+  height: 78px !important;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0 !important;
+  object-fit: contain !important;
+}
+/* Admin label sits beside the welcome name, not in account details */
+.dashboard-welcome-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dashboard-role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border: 1px solid rgba(118,101,216,.28);
+  border-radius: 999px;
+  background: rgba(126,108,216,.12);
+  color: #6656bd;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: .08em;
+  vertical-align: middle;
+}
