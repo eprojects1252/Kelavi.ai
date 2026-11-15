@@ -203,5 +203,5 @@ a:focus-visible {
 
 
 /* Amore Christmas: numeric typography only */
-@font-face{font-family:'Amore Christmas';src:url('/fonts/AmoreChristmas.otf') format('opentype');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:'Amore Christmas';src:url('/fonts/Amore%20Christmas.otf') format('opentype');font-style:normal;font-weight:400;font-display:swap}
 .number-font,.usage-number,.usage-donut-center strong{font-family:'Amore Christmas','Space Grotesk',sans-serif;font-variant-numeric:lining-nums}
