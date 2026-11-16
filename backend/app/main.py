@@ -94,7 +94,7 @@ async def login_with_mobile(payload: MobileLoginRequest, request: Request):
         raise HTTPException(status_code=503, detail="Mobile sign-in is not configured")
 
     mobile = "".join(payload.mobile_number.split())
-    if not re.fullmatch(r"\\+[1-9]\\d{7,14}", mobile):
+    if not re.fullmatch(r"\+[1-9]\d{7,14}", mobile):
         raise HTTPException(status_code=400, detail="Enter the mobile number with country code.")
 
     client_ip = request.client.host if request.client else "unknown"
