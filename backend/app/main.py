@@ -1,9 +1,10 @@
 import os
+import re
 import logging
 import time
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException, Depends
+from fastapi import FastAPI, Header, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -45,6 +46,25 @@ class CustomTokenLimitRequest(BaseModel):
 class AdminAccountUpdateRequest(BaseModel):
     display_name: str = Field(min_length=1, max_length=80)
 
+class MobileLoginRequest(BaseModel):
+    mobile_number: str = Field(min_length=8, max_length=16)
+    password: str = Field(min_length=8, max_length=256)
+
+
+_mobile_login_attempts: dict[str, list[float]] = {}
+
+
+def allow_mobile_login_attempt(key: str) -> bool:
+    """Best-effort per-process throttling; also enforce platform-level rate limits in production."""
+    now = time.monotonic()
+    attempts = [stamp for stamp in _mobile_login_attempts.get(key, []) if now - stamp < 900]
+    if len(attempts) >= 8:
+        _mobile_login_attempts[key] = attempts
+        return False
+    attempts.append(now)
+    _mobile_login_attempts[key] = attempts
+    return True
+
 
 async def require_user(authorization: str | None = Header(default=None)):
     if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
@@ -64,6 +84,67 @@ async def require_user(authorization: str | None = Header(default=None)):
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail="Could not verify your sign-in session") from exc
 
+
+
+
+@app.post("/api/v1/auth/login-mobile")
+async def login_with_mobile(payload: MobileLoginRequest, request: Request):
+    """Authenticate with an unverified mobile identifier and the account password."""
+    if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY or not SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(status_code=503, detail="Mobile sign-in is not configured")
+
+    mobile = "".join(payload.mobile_number.split())
+    if not re.fullmatch(r"\\+[1-9]\\d{7,14}", mobile):
+        raise HTTPException(status_code=400, detail="Enter the mobile number with country code.")
+
+    client_ip = request.client.host if request.client else "unknown"
+    ip_key = f"ip:{client_ip}"
+    phone_key = f"mobile:{mobile}"
+    if not allow_mobile_login_attempt(ip_key) or not allow_mobile_login_attempt(phone_key):
+        raise HTTPException(status_code=429, detail="Too many sign-in attempts. Please try again in 15 minutes.")
+
+    service_headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            profile_response = await client.get(
+                f"{SUPABASE_URL}/rest/v1/profiles",
+                headers=service_headers,
+                params={"select": "id", "mobile_number": f"eq.{mobile}", "limit": "1"},
+            )
+            if profile_response.status_code != 200:
+                logger.error("Mobile account lookup failed status=%s", profile_response.status_code)
+                raise HTTPException(status_code=503, detail="Sign-in is temporarily unavailable")
+            profiles = profile_response.json()
+            if not profiles:
+                raise HTTPException(status_code=401, detail="Invalid mobile number or password")
+
+            user_response = await client.get(
+                f"{SUPABASE_URL}/auth/v1/admin/users/{profiles[0]['id']}",
+                headers=service_headers,
+            )
+            if user_response.status_code != 200:
+                logger.error("Mobile auth user lookup failed status=%s", user_response.status_code)
+                raise HTTPException(status_code=401, detail="Invalid mobile number or password")
+            auth_user = user_response.json()
+            account_email = auth_user.get("email")
+            if not account_email:
+                raise HTTPException(status_code=401, detail="Invalid mobile number or password")
+
+            token_response = await client.post(
+                f"{SUPABASE_URL}/auth/v1/token",
+                params={"grant_type": "password"},
+                headers={"apikey": SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json"},
+                json={"email": account_email, "password": payload.password},
+            )
+            if token_response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid mobile number or password")
+            return token_response.json()
+    except httpx.HTTPError as exc:
+        logger.error("Mobile sign-in connection error type=%s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Could not complete mobile sign-in") from exc
 
 @app.get("/")
 async def root():
