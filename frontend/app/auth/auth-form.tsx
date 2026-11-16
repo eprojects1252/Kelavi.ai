@@ -4,12 +4,14 @@ import { FormEvent, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase";
 
 type Mode = "login" | "signup";
+type LoginMethod = "email" | "mobile";
 
 export default function AuthForm() {
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [identifier, setIdentifier] = useState("");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("mobile");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -52,21 +54,20 @@ export default function AuthForm() {
         }
       } else {
         const loginValue = identifier.trim();
-        if (loginValue.includes("@")) {
+        if (loginMethod === "email") {
+          if (!loginValue.includes("@")) throw new Error("Enter a valid email address.");
           const { error: authError } = await supabase.auth.signInWithPassword({
             email: loginValue.toLowerCase(),
             password,
           });
           if (authError) throw authError;
         } else {
-          const normalizedMobile = loginValue.replace(/[\s()-]/g, "");
-          if (!/^\+[1-9]\d{7,14}$/.test(normalizedMobile)) {
-            throw new Error("Enter your email or mobile number with country code (e.g. +919876543210).");
+          const normalizedMobile = loginValue.replace(/[\\s()-]/g, "");
+          if (!/^\\+[1-9]\\d{7,14}$/.test(normalizedMobile)) {
+            throw new Error("Enter mobile number with country code, e.g. +919876543210.");
           }
-
           const apiUrl = process.env.NEXT_PUBLIC_KELAVI_API_URL?.replace(/\\/$/, "");
           if (!apiUrl) throw new Error("Mobile sign-in service is not connected yet.");
-
           const response = await fetch(apiUrl + "/api/v1/auth/login-mobile", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -80,7 +81,6 @@ export default function AuthForm() {
           if (!response.ok || !result.access_token || !result.refresh_token) {
             throw new Error(typeof result.detail === "string" ? result.detail : "Invalid mobile number or password.");
           }
-
           const { error: sessionError } = await supabase.auth.setSession({
             access_token: result.access_token,
             refresh_token: result.refresh_token,
@@ -121,9 +121,15 @@ export default function AuthForm() {
           </>
         )}
         {mode === "login" && (
-          <label>Email or mobile number
-            <input type="text" autoComplete="username" inputMode="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email or +91 9876543210" required />
-          </label>
+          <>
+            <div className="auth-tabs" aria-label="Sign-in method">
+              <button type="button" className={loginMethod === "email" ? "auth-tab selected" : "auth-tab"} onClick={() => { setLoginMethod("email"); setIdentifier(""); setError(""); }}>Email</button>
+              <button type="button" className={loginMethod === "mobile" ? "auth-tab selected" : "auth-tab"} onClick={() => { setLoginMethod("mobile"); setIdentifier(""); setError(""); }}>Mobile Number</button>
+            </div>
+            <label>{loginMethod === "mobile" ? "Mobile Number" : "Email address"}
+              <input type={loginMethod === "mobile" ? "tel" : "email"} autoComplete="username" inputMode={loginMethod === "mobile" ? "tel" : "email"} value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder={loginMethod === "mobile" ? "+91 9876543210" : "you@example.com"} required />
+            </label>
+          </>
         )}
         <label>Password
           <input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} required />
