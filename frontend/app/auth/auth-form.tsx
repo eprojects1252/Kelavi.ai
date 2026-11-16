@@ -26,8 +26,8 @@ export default function AuthForm() {
       const supabase = getSupabaseBrowserClient();
 
       if (mode === "signup") {
-        const normalizedMobile = mobile.trim().replace(/[\\s()-]/g, "");
-        if (!/^\\+[1-9]\\d{7,14}$/.test(normalizedMobile)) {
+        const normalizedMobile = mobile.trim().replace(/[\s()-]/g, "");
+        if (!/^\+[1-9]\d{7,14}$/.test(normalizedMobile)) {
           throw new Error("Enter mobile number with country code, e.g. +919876543210.");
         }
 
@@ -59,8 +59,8 @@ export default function AuthForm() {
           });
           if (authError) throw authError;
         } else {
-          const normalizedMobile = loginValue.replace(/[\\s()-]/g, "");
-          if (!/^\\+[1-9]\\d{7,14}$/.test(normalizedMobile)) {
+          const normalizedMobile = loginValue.replace(/[\s()-]/g, "");
+          if (!/^\+[1-9]\d{7,14}$/.test(normalizedMobile)) {
             throw new Error("Enter your email or mobile number with country code (e.g. +919876543210).");
           }
 
