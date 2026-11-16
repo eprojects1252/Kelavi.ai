@@ -9,6 +9,7 @@ export default function AuthForm() {
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -50,11 +51,42 @@ export default function AuthForm() {
           setNotice("Account created. Check your email and confirm your address, then sign in. Mobile number is not verified yet.");
         }
       } else {
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
-        });
-        if (authError) throw authError;
+        const loginValue = identifier.trim();
+        if (loginValue.includes("@")) {
+          const { error: authError } = await supabase.auth.signInWithPassword({
+            email: loginValue.toLowerCase(),
+            password,
+          });
+          if (authError) throw authError;
+        } else {
+          const normalizedMobile = loginValue.replace(/[\\s()-]/g, "");
+          if (!/^\\+[1-9]\\d{7,14}$/.test(normalizedMobile)) {
+            throw new Error("Enter your email or mobile number with country code (e.g. +919876543210).");
+          }
+
+          const apiUrl = process.env.NEXT_PUBLIC_KELAVI_API_URL?.replace(/\\/$/, "");
+          if (!apiUrl) throw new Error("Mobile sign-in service is not connected yet.");
+
+          const response = await fetch(apiUrl + "/api/v1/auth/login-mobile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mobile_number: normalizedMobile, password }),
+          });
+          const result = await response.json().catch(() => ({})) as {
+            access_token?: string;
+            refresh_token?: string;
+            detail?: string;
+          };
+          if (!response.ok || !result.access_token || !result.refresh_token) {
+            throw new Error(typeof result.detail === "string" ? result.detail : "Invalid mobile number or password.");
+          }
+
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: result.access_token,
+            refresh_token: result.refresh_token,
+          });
+          if (sessionError) throw sessionError;
+        }
         window.location.assign("/dashboard");
       }
     } catch (err) {
@@ -81,13 +113,18 @@ export default function AuthForm() {
             </label>
             <label>Mobile number
               <input type="tel" autoComplete="tel" inputMode="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="+91 9876543210" maxLength={16} required />
-              <small>Include country code. OTP verification will be enabled later.</small>
+              <small>Include country code. Mobile OTP verification will be enabled later.</small>
+            </label>
+            <label>Email address
+              <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
             </label>
           </>
         )}
-        <label>Email address
-          <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
-        </label>
+        {mode === "login" && (
+          <label>Email or mobile number
+            <input type="text" autoComplete="username" inputMode="email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email or +91 9876543210" required />
+          </label>
+        )}
         <label>Password
           <input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} required />
         </label>
